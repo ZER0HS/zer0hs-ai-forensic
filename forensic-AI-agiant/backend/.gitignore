@@ -1,0 +1,19 @@
+# Secrets — never commit real keys
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Case data saved by the feedback loop (contains analysis metadata)
+feedback/*.json
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
