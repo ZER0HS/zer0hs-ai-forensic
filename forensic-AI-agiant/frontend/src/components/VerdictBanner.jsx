@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiClient } from '../api'
 
 export default function VerdictBanner({ verdict, caseId }) {
   const [submitted, setSubmitted] = useState(false)
@@ -60,10 +61,7 @@ export default function VerdictBanner({ verdict, caseId }) {
           ? verdict.verdict
           : verdict.verdict === 'TP' ? 'FP' : 'TP')
       form.append('is_correct', isCorrect)
-      await fetch('http://localhost:8000/feedback', {
-        method: 'POST',
-        body:   form
-      })
+      await apiClient.post('/feedback', form)
       setSubmitted(true)
     } catch(e) {
       console.error('Feedback error:', e)

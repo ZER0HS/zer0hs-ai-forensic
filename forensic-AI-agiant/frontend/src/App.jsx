@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { analyzeEvidence } from './api'
+import { analyzeEvidence, apiClient } from './api'
 import FileUpload from './components/FileUpload'
 import ResultsView from './components/ResultsView'
 import ThreatChecker from './components/ThreatChecker'
@@ -15,9 +15,8 @@ export default function App() {
 
   // Fetch backend status on load
   useEffect(() => {
-    fetch('http://localhost:8000/status')
-      .then(r => r.json())
-      .then(setStatus)
+    apiClient.get('/status')
+      .then(r => setStatus(r.data))
       .catch(() => setStatus(null))
   }, [])
 

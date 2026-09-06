@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import axios from 'axios'
+import { apiClient } from '../api'
 import VerdictBanner from './VerdictBanner'
 
 export default function ThreatChecker() {
@@ -16,7 +16,7 @@ export default function ThreatChecker() {
       const form = new FormData()
       form.append('indicator', indicator.trim())
       form.append('context', context)
-      const { data } = await axios.post('http://localhost:8000/threat-check', form)
+      const { data } = await apiClient.post('/threat-check', form)
       setResult(data)
     } catch(e) { setError('Check failed — make sure backend is running') }
     setLoading(false)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import axios from 'axios'
+import { apiClient } from '../api'
 
 export default function SandboxView({ urls, standalone }) {
   const [results, setResults] = useState({})
@@ -12,7 +12,7 @@ export default function SandboxView({ urls, standalone }) {
     try {
       const form = new FormData()
       form.append('url', url)
-      const { data } = await axios.post('http://localhost:8000/sandbox', form)
+      const { data } = await apiClient.post('/sandbox', form)
       setResults(p => ({...p, [key]: data}))
     } catch(e) {
       setResults(p => ({...p, [key]: {error: 'Scan failed — check backend', status:'error'}}))
