@@ -56,9 +56,18 @@ def check_typosquatting(domain: str) -> dict:
     domain_lower = domain.lower()
     # Remove TLD
     domain_base  = domain_lower.rsplit(".", 1)[0]
-    
+
     for brand in TYPOSQUAT_BRANDS:
-        if brand in domain_base and domain_base != brand:
+        # The brand's own domain, or a real subdomain of it (e.g.
+        # "mail.google" for brand "google"), is never a typosquat of
+        # itself. Without this check every legitimate brand domain 5+
+        # characters long (google.com, paypal.com, chase.com, ...) was
+        # being flagged as "impersonating" itself, since the Levenshtein
+        # check below matches an exact string against itself at distance 0.
+        if domain_base == brand or domain_base.endswith("." + brand):
+            continue
+
+        if brand in domain_base:
             # Check for number substitutions (paypa1, g00gle)
             normalized = (domain_base
                 .replace("0", "o").replace("1", "l")
@@ -152,11 +161,12 @@ def check_dangerous_attachments(text: str) -> list:
     return found
 
 def run_rules(text: str, indicators: dict,
-              threat_results: list) -> dict:
+              threat_results: list, hash_results: list = None) -> dict:
     """
     Run all deterministic rules and return structured findings.
     This is ground truth — LLM cannot override these results.
     """
+    hash_results = hash_results or []
     findings  = {
         "rule_score":           0,
         "hard_tp_indicators":   [],
@@ -199,7 +209,19 @@ def run_rules(text: str, indicators: dict,
             f"Dangerous file references: {', '.join(dangerous)}"
         )
     
-    # 4. Threat intel scoring
+    # 4. Attachment hash checks (VirusTotal) — a confirmed-malicious hash is
+    #    about as strong a signal as this engine ever gets, so it alone is
+    #    enough to force a definite-TP override (see step 6).
+    malicious_hashes = [h for h in hash_results if h.get("malicious", 0) > 0]
+    if malicious_hashes:
+        for h in malicious_hashes:
+            findings["hard_tp_indicators"].append(
+                f"Attachment '{h.get('filename', 'unknown')}' hash flagged "
+                f"malicious by {h['malicious']}/{h.get('total', '?')} "
+                f"VirusTotal engines"
+            )
+
+    # 5. Threat intel scoring
     max_ip_score     = 0
     max_domain_score = 0
     clean_ips        = []
@@ -250,21 +272,28 @@ def run_rules(text: str, indicators: dict,
         "clean_ips":        clean_ips
     }
     
-    # 5. Calculate rule-based score
+    # 6. Calculate rule-based score
     rule_score = 0
     rule_score += min(text_analysis["total_score"] * 0.3, 30)
     rule_score += min(max_ip_score * 0.4, 40)
     rule_score += min(max_domain_score * 0.3, 30)
     rule_score += len(findings["typosquat_results"]) * 20
     rule_score += len(findings["dangerous_files"]) * 25
+    rule_score += len(malicious_hashes) * 30
     findings["rule_score"] = min(int(rule_score), 100)
-    
-    # 6. Hard overrides — cases where rules are definitive
+
+    # 7. Hard overrides — cases where rules are definitive.
+    # Ordered most-confident-signal-first; each is an independent `elif` so
+    # exactly one reason is ever recorded.
     tp_count = len(findings["hard_tp_indicators"])
-    fp_count = len(findings["hard_fp_indicators"])
-    
-    # Definite TP cases
-    if len(findings["typosquat_results"]) > 0 and max_ip_score >= 75:
+
+    if malicious_hashes:
+        findings["verdict_override"] = "TP"
+        findings["override_reason"]  = (
+            "DEFINITE TP: Attachment hash confirmed malicious on "
+            f"VirusTotal ({len(malicious_hashes)} attachment(s) flagged)"
+        )
+    elif len(findings["typosquat_results"]) > 0 and max_ip_score >= 75:
         findings["verdict_override"] = "TP"
         findings["override_reason"]  = (
             "DEFINITE TP: Typosquatting domain + "
@@ -276,7 +305,7 @@ def run_rules(text: str, indicators: dict,
             "DEFINITE TP: Dangerous attachment + "
             "malicious IP confirmed"
         )
-    
+
     # Definite FP cases
     elif (tp_count == 0 and
           text_analysis["total_score"] < 20 and
@@ -287,5 +316,62 @@ def run_rules(text: str, indicators: dict,
             "DEFINITE FP: No threat indicators found — "
             "clean IPs, clean domains, no suspicious patterns"
         )
-    
+
     return findings
+
+
+# ── Short-circuit path for maximally-confident deterministic verdicts ───────
+#
+# When run_rules() above already produced a `verdict_override`, both LLM
+# calls (forensic analysis + FP/TP scoring) are skipped entirely — see
+# main.py. In a real inbox, most email is either obviously clean or
+# obviously malicious; this is where "fast" actually comes from, not from
+# making the LLM call itself faster. These two functions build the same
+# response shape the LLM path produces, using only the rule engine's own
+# (already-trustworthy) findings.
+
+def shortcircuit_forensic(text: str, rule_findings: dict) -> dict:
+    findings = (rule_findings.get("hard_tp_indicators", []) +
+                rule_findings.get("hard_fp_indicators", []))
+    return {
+        "summary": rule_findings.get(
+            "override_reason",
+            "Deterministic rule engine reached a maximally-confident "
+            "verdict; no LLM call was needed."
+        ),
+        "key_findings": findings[:6],
+        "entities": {"persons": [], "places": [], "times": [], "orgs": []},
+        "highlight": {"text": text[:300], "start": 0, "end": 0},
+        "anomalies": [],
+        "timeline": [],
+    }
+
+
+def shortcircuit_verdict(rule_findings: dict) -> dict:
+    override  = rule_findings["verdict_override"]
+    reason    = rule_findings.get("override_reason", "")
+    is_tp     = override == "TP"
+    return {
+        "verdict":       override,
+        "confidence":    95,
+        "risk_level":    "critical" if is_tp else "clean",
+        "case_summary":  reason,
+        "reasoning":     f"[RULE ENGINE — no LLM call needed] {reason}",
+        "fp_tp_factors": {
+            "factors_for_tp": rule_findings.get("hard_tp_indicators", []) if is_tp else [],
+            "factors_for_fp": rule_findings.get("hard_fp_indicators", []) if not is_tp else [],
+            "deciding_factor": reason,
+        },
+        "recommended_actions": (
+            ["Escalate to incident response", "Block sender domain/IP",
+             "Preserve headers and attachments for the case record"]
+            if is_tp else
+            ["No action required — routine review only"]
+        ),
+        "mitre_techniques":     [],
+        "iocs":                 [],
+        "threat_actor_profile": None,
+        "severity_breakdown": {
+            "indicator_risk": 0, "behavioral_risk": 0, "contextual_risk": 0
+        },
+    }

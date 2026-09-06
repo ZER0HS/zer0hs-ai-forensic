@@ -44,7 +44,7 @@ export default function ResultsView({ data }) {
           {tab === 'threat'    && <ThreatResults results={data.threat_results} indicators={data.indicators} />}
           {tab === 'headers'   && <EmailHeaders data={data.eml_headers} />}
           {tab === 'sandbox'   && <SandboxView urls={data.indicators?.urls} />}
-          {tab === 'entities'  && <EntityView data={data.entities} highlighted={data.highlighted_text} />}
+          {tab === 'entities'  && <EntityView data={data.entities} highlight={data.highlight} />}
           {tab === 'anomalies' && <AnomalyList anomalies={data.anomalies} />}
           {tab === 'timeline'  && <Timeline events={data.timeline} />}
           {tab === 'report'    && <ReportExport data={data} />}
