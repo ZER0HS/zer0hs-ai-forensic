@@ -1,0 +1,8 @@
+To: someone@example.com
+Subject: (no subject)
+
+This is a deliberately broken email: no From header, and a stray
+multipart boundary marker below with no matching Content-Type headers.
+--boundary123
+Fragment without proper multipart structure.
+--boundary123--

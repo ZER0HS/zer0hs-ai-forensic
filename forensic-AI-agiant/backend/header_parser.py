@@ -1,6 +1,7 @@
 import re
 import email
 from email import policy
+from email.utils import parseaddr
 
 def parse_eml(content: bytes) -> dict:
     try:
@@ -101,7 +102,14 @@ def parse_eml(content: bytes) -> dict:
     frm = result["from"]
     rt  = result["reply_to"]
 
-    if rt and frm and rt != frm:
+    # Compare the actual email *addresses*, not the raw header strings —
+    # "Alex Chen <a@x.com>" vs "a@x.com" is the same address with/without a
+    # display name (extremely common and benign), and comparing raw
+    # strings flagged that as a mismatch on every such email.
+    frm_addr = parseaddr(frm)[1].lower()
+    rt_addr  = parseaddr(rt)[1].lower()
+
+    if rt_addr and frm_addr and rt_addr != frm_addr:
         result["anomalies"].append({
             "type": "reply_to_mismatch",
             "detail": f"Reply-To ({rt}) differs from From ({frm})",

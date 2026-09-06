@@ -1,0 +1,18 @@
+From: Alex Chen <alex.chen@acme-consulting.com>
+To: you@example.com
+Subject: Invoice #4821 due today
+Date: Mon, 1 Sep 2025 09:02:00 +0000
+Reply-To: alex.chen@acme-consulting.com
+Message-ID: <inv4821@acme-consulting.com>
+Received: from mail.acme-consulting.com (mail.acme-consulting.com [203.0.113.20])
+    by mx.example.com; Mon, 1 Sep 2025 09:02:00 +0000
+Authentication-Results: mx.example.com; spf=pass smtp.mailfrom=acme-consulting.com; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+
+Hi,
+
+Just a reminder that invoice #4821 for last month's consulting work is
+due today. Let me know if you have any questions about the breakdown.
+
+Thanks,
+Alex

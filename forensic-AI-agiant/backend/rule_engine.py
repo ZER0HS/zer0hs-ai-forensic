@@ -67,20 +67,30 @@ def check_typosquatting(domain: str) -> dict:
         if domain_base == brand or domain_base.endswith("." + brand):
             continue
 
-        if brand in domain_base:
-            # Check for number substitutions (paypa1, g00gle)
-            normalized = (domain_base
-                .replace("0", "o").replace("1", "l")
-                .replace("3", "e").replace("4", "a")
-                .replace("5", "s").replace("@", "a"))
-            if brand in normalized:
-                return {
-                    "detected":    True,
-                    "brand":       brand,
-                    "domain":      domain,
-                    "technique":   "typosquatting"
-                }
-        
+        # Check for number substitutions (paypa1, g00gle). This normalizes
+        # *before* the substring test, not after — the original code only
+        # normalized when the raw string already contained the brand
+        # verbatim, which meant it could never actually catch a digit
+        # substitution (that's precisely the case where the raw string
+        # does NOT contain the brand yet). That made this branch dead code
+        # for exactly the domains it was written to catch — e.g.
+        # "paypa1-account-security.com" was invisible to it and fell
+        # through to the Levenshtein check below, which fails once the
+        # domain is padded with enough extra words to push the edit
+        # distance past the threshold.
+        normalized = (domain_base
+            .replace("0", "o").replace("1", "l")
+            .replace("3", "e").replace("4", "a")
+            .replace("5", "s").replace("@", "a"))
+
+        if brand in domain_base or brand in normalized:
+            return {
+                "detected":  True,
+                "brand":     brand,
+                "domain":    domain,
+                "technique": "typosquatting" if brand in domain_base else "number-substitution",
+            }
+
         # Levenshtein-like: check if very similar to brand
         if len(brand) > 4 and levenshtein(domain_base, brand) <= 2:
             return {

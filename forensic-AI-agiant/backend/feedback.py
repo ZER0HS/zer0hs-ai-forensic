@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 FEEDBACK_DIR = Path("feedback")
@@ -13,7 +13,7 @@ def save_analysis(case_data: dict) -> str:
     # Never save raw evidence text — only metadata and results
     safe_data = {
         "case_id":         case_id,
-        "timestamp":       datetime.utcnow().isoformat(),
+        "timestamp":       datetime.now(timezone.utc).isoformat(),
         "llm_verdict":     case_data.get("case_verdict", {}).get("verdict"),
         "llm_confidence":  case_data.get("case_verdict", {}).get("confidence"),
         "llm_risk_level":  case_data.get("case_verdict", {}).get("risk_level"),
@@ -41,7 +41,7 @@ def save_feedback(case_id: str, human_verdict: str,
     data["human_verdict"] = human_verdict
     data["human_correct"] = is_correct
     data["human_notes"]   = notes
-    data["reviewed_at"]   = datetime.utcnow().isoformat()
+    data["reviewed_at"]   = datetime.now(timezone.utc).isoformat()
     path.write_text(json.dumps(data, indent=2))
     return True
 

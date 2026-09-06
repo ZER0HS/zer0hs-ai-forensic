@@ -42,6 +42,13 @@ async def _fetch_ip(ip: str) -> dict:
 
 
 async def check_ip(ip: str) -> dict:
+    if not ABUSEIPDB_KEY:
+        # Without this, a request with a blank "Key" header was sent to
+        # AbuseIPDB anyway, which returns an error body with no "data"
+        # field — silently read back as abuse_score=0, i.e. "confirmed
+        # clean", when really no check happened at all. check_domain()
+        # already got this right for VirusTotal; this matches it.
+        return {"type": "ip", "value": ip, "abuse_score": 0, "source": "AbuseIPDB (not configured)"}
     cache_key = f"ip:{ip}"
     if cache_key in _cache:
         return _cache[cache_key]
