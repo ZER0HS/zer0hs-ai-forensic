@@ -341,8 +341,22 @@ def run_rules(text: str, indicators: dict,
 # (already-trustworthy) findings.
 
 def shortcircuit_forensic(text: str, rule_findings: dict) -> dict:
-    findings = (rule_findings.get("hard_tp_indicators", []) +
-                rule_findings.get("hard_fp_indicators", []))
+    is_tp = rule_findings.get("verdict_override") == "TP"
+    hard_tp = rule_findings.get("hard_tp_indicators", [])
+    hard_fp = rule_findings.get("hard_fp_indicators", [])
+    findings = hard_tp + hard_fp
+
+    # Surface the rule engine's own findings as anomalies too — found live
+    # while testing this pass: leaving this empty made a confirmed TP show
+    # "0 anomalies" in the UI, which reads as "nothing was found" even
+    # though the case summary and factors right next to it clearly list
+    # what was. Every hard indicator is real evidence; it should show up
+    # wherever the UI displays evidence, not just in one place.
+    anomalies = [
+        {"severity": "critical" if is_tp else "low", "title": "Rule engine finding", "description": i}
+        for i in (hard_tp if is_tp else hard_fp)
+    ]
+
     return {
         "summary": rule_findings.get(
             "override_reason",
@@ -352,7 +366,7 @@ def shortcircuit_forensic(text: str, rule_findings: dict) -> dict:
         "key_findings": findings[:6],
         "entities": {"persons": [], "places": [], "times": [], "orgs": []},
         "highlight": {"text": text[:300], "start": 0, "end": 0},
-        "anomalies": [],
+        "anomalies": anomalies,
         "timeline": [],
     }
 

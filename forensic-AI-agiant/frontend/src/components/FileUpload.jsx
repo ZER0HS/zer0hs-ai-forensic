@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Loader2, Upload, X } from 'lucide-react'
 
-export default function FileUpload({ onAnalyze, loading, progress }) {
+export default function FileUpload({ onAnalyze, loading }) {
   const [file, setFile] = useState(null)
   const [text, setText] = useState('')
   const [drag, setDrag] = useState(false)
@@ -34,7 +35,7 @@ export default function FileUpload({ onAnalyze, loading, progress }) {
             background: drag ? 'rgba(59,130,246,0.05)' : 'var(--bg1)',
             transition:'all 0.2s'
           }}>
-          <div style={{fontSize:'28px', marginBottom:'8px'}}>📁</div>
+          <Upload size={24} color="var(--text3)" style={{marginBottom:'8px'}} />
           <p style={{fontSize:'13px', color: file ? 'var(--blue)' : 'var(--text2)', fontWeight: file ? '500' : '400'}}>
             {file ? file.name : 'Drop file or click to upload'}
           </p>
@@ -68,38 +69,29 @@ export default function FileUpload({ onAnalyze, loading, progress }) {
 
       <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
         <button
+          type="button"
           onClick={() => onAnalyze(file, text)}
           disabled={loading || (!file && !text.trim())}
           style={{
+            display:'flex', alignItems:'center', gap:'8px',
             padding:'11px 28px',
             background: loading ? 'var(--bg4)' : 'linear-gradient(135deg, #3b82f6, #6366f1)',
             color:'white', border:'none', borderRadius:'10px',
             fontSize:'13px', fontWeight:'600', cursor: loading ? 'not-allowed' : 'pointer',
             transition:'opacity 0.15s', opacity: (!file && !text.trim()) ? 0.4 : 1
           }}>
+          {loading && <Loader2 size={14} style={{animation:'spin 0.8s linear infinite'}} />}
           {loading ? 'Analyzing...' : 'Run Full Analysis'}
         </button>
 
-        {loading && progress && (
-          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-            <div style={{
-              width:'16px', height:'16px', border:'2px solid var(--border2)',
-              borderTopColor:'var(--blue)', borderRadius:'50%',
-              animation:'spin 0.8s linear infinite'
-            }}/>
-            <span style={{fontSize:'12px', color:'var(--text2)'}}>{progress}</span>
-          </div>
-        )}
-
         {file && !loading && (
-          <button onClick={() => setFile(null)} style={{
+          <button type="button" onClick={() => setFile(null)} style={{
+            display:'flex', alignItems:'center', gap:'4px',
             fontSize:'12px', color:'var(--text3)', background:'none',
             border:'none', cursor:'pointer', padding:'4px'
-          }}>✕ clear file</button>
+          }}><X size={12} /> clear file</button>
         )}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

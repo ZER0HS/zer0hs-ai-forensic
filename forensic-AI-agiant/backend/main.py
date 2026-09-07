@@ -82,7 +82,10 @@ from extractor     import extract_indicators
 from sandbox       import sandbox_url, check_all_hashes
 from rule_engine   import run_rules, shortcircuit_forensic, shortcircuit_verdict
 from knowledge_base import get_relevant_patterns
-from feedback      import save_analysis, save_feedback, get_accuracy_stats
+from feedback      import (
+    get_accuracy_stats, get_case, get_verdict_distribution,
+    list_cases, save_analysis, save_feedback,
+)
 
 # ── Health check ──────────────────────────────────────────────────────────
 @app.get("/health")
@@ -273,4 +276,18 @@ async def submit_feedback(
 # ── Accuracy stats ────────────────────────────────────────────────────────
 @app.get("/accuracy")
 async def accuracy():
-    return get_accuracy_stats()
+    stats = get_accuracy_stats()
+    stats["verdict_distribution"] = get_verdict_distribution()
+    return stats
+
+# ── Case history ──────────────────────────────────────────────────────────
+@app.get("/cases")
+async def cases(limit: int = 50):
+    return {"cases": list_cases(limit)}
+
+@app.get("/cases/{case_id}")
+async def case_detail(case_id: str):
+    data = get_case(case_id)
+    if data is None:
+        return JSONResponse({"error": "Case not found"}, status_code=404)
+    return data

@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { AlertTriangle, Check, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { apiClient } from '../api'
+import { severityConfig } from './ui/severity'
 
 export default function VerdictBanner({ verdict, caseId }) {
   const [submitted, setSubmitted] = useState(false)
@@ -7,45 +9,7 @@ export default function VerdictBanner({ verdict, caseId }) {
 
   if (!verdict) return null
 
-  const cfg = {
-    critical: {
-      bg:     'rgba(239,68,68,0.08)',
-      border: 'rgba(239,68,68,0.3)',
-      color:  '#fca5a5',
-      accent: '#ef4444',
-      badge:  'rgba(239,68,68,0.2)'
-    },
-    high: {
-      bg:     'rgba(249,115,22,0.08)',
-      border: 'rgba(249,115,22,0.3)',
-      color:  '#fdba74',
-      accent: '#f97316',
-      badge:  'rgba(249,115,22,0.2)'
-    },
-    medium: {
-      bg:     'rgba(245,158,11,0.08)',
-      border: 'rgba(245,158,11,0.3)',
-      color:  '#fcd34d',
-      accent: '#f59e0b',
-      badge:  'rgba(245,158,11,0.2)'
-    },
-    low: {
-      bg:     'rgba(59,130,246,0.08)',
-      border: 'rgba(59,130,246,0.3)',
-      color:  '#93c5fd',
-      accent: '#3b82f6',
-      badge:  'rgba(59,130,246,0.2)'
-    },
-    clean: {
-      bg:     'rgba(16,185,129,0.08)',
-      border: 'rgba(16,185,129,0.3)',
-      color:  '#6ee7b7',
-      accent: '#10b981',
-      badge:  'rgba(16,185,129,0.2)'
-    },
-  }
-
-  const c       = cfg[verdict.risk_level] || cfg.low
+  const c       = severityConfig(verdict.risk_level)
   const isTP    = verdict.verdict === 'TP'
   const factors = verdict.fp_tp_factors || {}
 
@@ -300,7 +264,7 @@ export default function VerdictBanner({ verdict, caseId }) {
               alignItems:    'center',
               gap:           '6px'
             }}>
-              ⚠ Factors supporting TP
+              <AlertTriangle size={12} /> Factors supporting TP
             </p>
             {factors.factors_for_tp?.length > 0
               ? factors.factors_for_tp.map((f, i) => (
@@ -343,7 +307,7 @@ export default function VerdictBanner({ verdict, caseId }) {
               alignItems:    'center',
               gap:           '6px'
             }}>
-              ✓ Factors supporting FP
+              <Check size={12} /> Factors supporting FP
             </p>
             {factors.factors_for_fp?.length > 0
               ? factors.factors_for_fp.map((f, i) => (
@@ -490,11 +454,12 @@ export default function VerdictBanner({ verdict, caseId }) {
         {submitted ? (
           <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
             <span style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
               fontSize:  '12px',
               color:     '#6ee7b7',
               fontWeight:'500'
             }}>
-              ✓ Feedback saved
+              <Check size={13} /> Feedback saved
             </span>
             <span style={{fontSize:'11px', color:'var(--text3)'}}>
               — helps improve accuracy over time
@@ -503,9 +468,11 @@ export default function VerdictBanner({ verdict, caseId }) {
         ) : (
           <div style={{display:'flex', gap:'8px'}}>
             <button
+              type="button"
               onClick={() => submitFeedback(true)}
               disabled={!caseId}
               style={{
+                display:      'flex', alignItems: 'center', gap: '5px',
                 padding:      '6px 16px',
                 fontSize:     '12px',
                 cursor:       caseId ? 'pointer' : 'not-allowed',
@@ -518,12 +485,14 @@ export default function VerdictBanner({ verdict, caseId }) {
                 fontWeight:   '500',
                 transition:   'all 0.15s'
               }}>
-              👍 Correct
+              <ThumbsUp size={13} /> Correct
             </button>
             <button
+              type="button"
               onClick={() => submitFeedback(false)}
               disabled={!caseId}
               style={{
+                display:      'flex', alignItems: 'center', gap: '5px',
                 padding:      '6px 16px',
                 fontSize:     '12px',
                 cursor:       caseId ? 'pointer' : 'not-allowed',
@@ -536,7 +505,7 @@ export default function VerdictBanner({ verdict, caseId }) {
                 fontWeight:   '500',
                 transition:   'all 0.15s'
               }}>
-              👎 Wrong verdict
+              <ThumbsDown size={13} /> Wrong verdict
             </button>
           </div>
         )}

@@ -1,3 +1,5 @@
+import { AlertTriangle } from 'lucide-react'
+
 export default function Timeline({ events }) {
   if (!events?.length) return <p style={{fontSize:'13px', color:'var(--text3)'}}>No timeline events found.</p>
 
@@ -23,10 +25,11 @@ export default function Timeline({ events }) {
             </p>
           )}
           {e.anomaly && (
-            <span style={{fontSize:'10px', padding:'2px 8px', marginTop:'6px', display:'inline-block',
+            <span style={{fontSize:'10px', padding:'2px 8px', marginTop:'6px', display:'inline-flex',
+              alignItems:'center', gap:'4px',
               background:'rgba(239,68,68,0.1)', color:'#fca5a5',
               border:'1px solid rgba(239,68,68,0.3)', borderRadius:'4px'}}>
-              ⚠ anomaly flagged
+              <AlertTriangle size={10} /> anomaly flagged
             </span>
           )}
         </div>

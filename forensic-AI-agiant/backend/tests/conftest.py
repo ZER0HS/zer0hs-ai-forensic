@@ -31,6 +31,19 @@ def fixtures_dir() -> Path:
     return FIXTURES_DIR
 
 
+@pytest.fixture(autouse=True)
+def _isolate_feedback_dir(tmp_path, monkeypatch):
+    """Every test's case-file writes go to a throwaway directory, never
+    the real backend/feedback/ the running app actually uses. Without
+    this, any test that exercises /analyze (which unconditionally calls
+    save_analysis()) pollutes real case history — which is exactly what
+    happened while writing test_analyze_integration.py before this
+    fixture existed. autouse=True means no test has to opt in or
+    remember to do this itself."""
+    import feedback
+    monkeypatch.setattr(feedback, "FEEDBACK_DIR", tmp_path)
+
+
 def load_fixture(name: str) -> bytes:
     return (FIXTURES_DIR / name).read_bytes()
 

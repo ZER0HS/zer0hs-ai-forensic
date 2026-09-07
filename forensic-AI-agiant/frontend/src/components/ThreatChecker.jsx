@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { apiClient } from '../api'
 import VerdictBanner from './VerdictBanner'
+import { scoreToSeverity, severityConfig } from './ui/severity'
+
+const scoreColor = s => severityConfig(scoreToSeverity(s)).accent
 
 export default function ThreatChecker() {
   const [indicator, setIndicator] = useState('')
@@ -24,7 +27,6 @@ export default function ThreatChecker() {
 
   const intel = result?.threat_intel
   const verdict = result?.ai_verdict
-  const scoreColor = s => s >= 75 ? '#ef4444' : s >= 40 ? '#f97316' : s >= 15 ? '#f59e0b' : '#10b981'
 
   return (
     <div>

@@ -45,6 +45,44 @@ def save_feedback(case_id: str, human_verdict: str,
     path.write_text(json.dumps(data, indent=2))
     return True
 
+def list_cases(limit: int = 50) -> list:
+    """Most-recent-first list of saved case metadata, for the Case History
+    page. Never includes raw evidence text — save_analysis() above only
+    ever wrote metadata and results to disk in the first place."""
+    paths = sorted(FEEDBACK_DIR.glob("*.json"), key=lambda p: p.name, reverse=True)
+    cases = []
+    for path in paths[:max(0, min(limit, 200))]:
+        try:
+            cases.append(json.loads(path.read_text()))
+        except (json.JSONDecodeError, OSError):
+            continue
+    return cases
+
+
+def get_case(case_id: str) -> dict | None:
+    path = FEEDBACK_DIR / f"{case_id}.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return None
+
+
+def get_verdict_distribution() -> dict:
+    """TP/FP counts across every saved case (not just human-reviewed ones)
+    — a simple chart-ready summary for the Accuracy dashboard."""
+    counts = {"TP": 0, "FP": 0, "unknown": 0}
+    for path in FEEDBACK_DIR.glob("*.json"):
+        try:
+            data = json.loads(path.read_text())
+        except json.JSONDecodeError:
+            continue
+        verdict = data.get("llm_verdict")
+        counts[verdict if verdict in ("TP", "FP") else "unknown"] += 1
+    return counts
+
+
 def get_accuracy_stats() -> dict:
     """Calculate current system accuracy from human feedback"""
     cases    = list(FEEDBACK_DIR.glob("*.json"))

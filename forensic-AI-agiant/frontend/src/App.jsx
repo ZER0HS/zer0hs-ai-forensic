@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { analyzeEvidence, apiClient } from './api'
 import FileUpload from './components/FileUpload'
 import ResultsView from './components/ResultsView'
 import ThreatChecker from './components/ThreatChecker'
 import SandboxView from './components/SandboxView'
+import CaseHistory, { ErrorBanner, PageHeader } from './components/CaseHistory'
+import AccuracyDashboard from './components/AccuracyDashboard'
+import Sidebar from './components/Sidebar'
 
 export default function App() {
   const [result, setResult]     = useState(null)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
   const [tab, setTab]           = useState('evidence')
-  const [progress, setProgress] = useState('')
   const [status, setStatus]     = useState(null)
 
   // Fetch backend status on load
@@ -24,209 +27,129 @@ export default function App() {
     setLoading(true)
     setError(null)
     setResult(null)
-    const steps = [
-      'Parsing evidence...',
-      'Extracting indicators...',
-      'Checking threat intelligence...',
-      'Running AI analysis...',
-      'Scoring FP/TP verdict...'
-    ]
-    let i = 0
-    const timer = setInterval(() => {
-      setProgress(steps[Math.min(i++, steps.length - 1)])
-    }, 1800)
     try {
       const data = await analyzeEvidence(file, text)
       setResult(data)
-      setTab('evidence')
-    } catch(e) {
+    } catch {
       setError('Backend error — make sure it is running on port 8000')
     }
-    clearInterval(timer)
-    setProgress('')
     setLoading(false)
   }
 
-  const navTabs = [
-    ['evidence', 'Evidence Analysis', '🔍'],
-    ['threat',   'Threat Intel',      '🛡️'],
-    ['sandbox',  'URL Sandbox',       '📦'],
-  ]
-
   return (
-    <div style={{minHeight:'100vh', background:'var(--bg0)'}}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg0)', display: 'flex' }}>
+      <Sidebar active={tab} onNavigate={setTab} />
 
-      {/* Nav */}
-      <nav style={{
-        background:'var(--bg1)',
-        borderBottom:'1px solid var(--border)',
-        padding:'0 32px',
-        display:'flex', alignItems:'center',
-        position:'sticky', top:0, zIndex:100,
-        backdropFilter:'blur(12px)'
-      }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <TopStatusBar status={status} />
 
-        {/* Logo */}
-        <div style={{display:'flex', alignItems:'center', gap:'8px',
-          marginRight:'40px', padding:'14px 0'}}>
-          <div style={{
-            width:'28px', height:'28px', borderRadius:'6px',
-            background:'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:'14px', fontWeight:'700', color:'white'
-          }}>F</div>
-          <span style={{fontSize:'14px', fontWeight:'700',
-            color:'var(--text1)', letterSpacing:'-0.02em'}}>
-            ForensicAI
-          </span>
+        <div style={{ maxWidth: '1140px', margin: '0 auto', padding: 'var(--space-6) var(--space-5)' }}>
+
+          {tab === 'evidence' && (
+            <>
+              <PageHeader
+                title="Evidence Analysis"
+                subtitle="Upload an email, log file, or paste text — the agent automatically extracts IPs, domains, checks threat intel, and delivers a full FP/TP verdict."
+              />
+
+              <FileUpload onAnalyze={handleAnalyze} loading={loading} />
+
+              {error && <ErrorBanner message={error} />}
+
+              {loading && <AnalysisSkeleton />}
+
+              {result && <ResultsView data={result} />}
+            </>
+          )}
+
+          {tab === 'threat' && <ThreatChecker />}
+
+          {tab === 'sandbox' && (
+            <>
+              <PageHeader
+                title="URL Sandbox"
+                subtitle="Submit any URL to URLScan.io for live sandbox analysis — get screenshot, server info, malicious verdict, and full behavior report."
+              />
+              <SandboxView standalone />
+            </>
+          )}
+
+          {tab === 'history'  && <CaseHistory />}
+          {tab === 'accuracy' && <AccuracyDashboard />}
+
         </div>
+      </div>
+    </div>
+  )
+}
 
-        {/* Nav tabs */}
-        <div style={{display:'flex', gap:'4px'}}>
-          {navTabs.map(([key, label, icon]) => (
-            <button key={key} onClick={() => setTab(key)} style={{
-              padding:'8px 16px', fontSize:'13px', border:'none',
-              cursor:'pointer', borderRadius:'6px', transition:'all 0.15s',
-              display:'flex', alignItems:'center', gap:'6px',
-              background: tab===key ? 'rgba(59,130,246,0.15)' : 'transparent',
-              color: tab===key ? 'var(--blue)' : 'var(--text2)',
-              fontWeight: tab===key ? '500' : '400'
-            }}>
-              <span>{icon}</span>{label}
-            </button>
+function TopStatusBar({ status }) {
+  return (
+    <div style={{
+      height: 'var(--topbar-height)', display: 'flex', alignItems: 'center',
+      justifyContent: 'flex-end', gap: 'var(--space-3)',
+      padding: '0 var(--space-5)', borderBottom: '1px solid var(--border)',
+      background: 'var(--bg1)', position: 'sticky', top: 0, zIndex: 10,
+    }}>
+      {status && (
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[
+            ['AbuseIPDB', status.abuseipdb],
+            ['VT',        status.virustotal],
+            ['URLScan',   status.urlscan],
+          ].map(([name, ok]) => (
+            <span key={name} style={{
+              fontSize: 'var(--text-xs)', padding: '2px 7px', borderRadius: 'var(--radius-sm)',
+              background: ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+              color: ok ? '#6ee7b7' : '#fca5a5',
+              border: `1px solid ${ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            }}>{name}</span>
           ))}
         </div>
+      )}
 
-        {/* Status indicators */}
-        <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:'12px'}}>
-
-          {/* API key badges */}
-          {status && (
-            <div style={{display:'flex', gap:'6px'}}>
-              {[
-                ['AbuseIPDB', status.abuseipdb],
-                ['VT',        status.virustotal],
-                ['URLScan',   status.urlscan],
-              ].map(([name, ok]) => (
-                <span key={name} style={{
-                  fontSize:'10px', padding:'2px 7px', borderRadius:'4px',
-                  background: ok
-                    ? 'rgba(16,185,129,0.1)'
-                    : 'rgba(239,68,68,0.1)',
-                  color: ok ? '#6ee7b7' : '#fca5a5',
-                  border: `1px solid ${ok
-                    ? 'rgba(16,185,129,0.2)'
-                    : 'rgba(239,68,68,0.2)'}`
-                }}>{name}</span>
-              ))}
-            </div>
-          )}
-
-          {/* LLM provider pill */}
-          <div style={{
-            display:'flex', alignItems:'center', gap:'6px',
-            padding:'4px 10px', borderRadius:'6px',
-            background: status?.provider_ok
-              ? 'rgba(16,185,129,0.08)'
-              : 'rgba(239,68,68,0.08)',
-            border: `1px solid ${status?.provider_ok
-              ? 'rgba(16,185,129,0.2)'
-              : 'rgba(239,68,68,0.2)'}`
-          }}>
-            <div style={{
-              width:'5px', height:'5px', borderRadius:'50%',
-              background: status?.provider_ok ? 'var(--green)' : '#ef4444',
-              boxShadow: status?.provider_ok
-                ? '0 0 6px #10b981'
-                : '0 0 6px #ef4444'
-            }}/>
-            <span style={{fontSize:'11px',
-              color: status?.provider_ok ? 'var(--green)' : '#fca5a5'}}>
-              {status
-                ? `${status.provider} · ${status.model}`
-                : 'connecting...'}
-            </span>
-          </div>
-
-          {/* Error message if provider is down */}
-          {status && !status.provider_ok && status.error && (
-            <span style={{
-              fontSize:'11px', color:'#fca5a5',
-              maxWidth:'200px', lineHeight:'1.4'
-            }}>
-              ⚠ {status.error}
-            </span>
-          )}
-
-        </div>
-      </nav>
-      {/* End nav */}
-
-      {/* Main content */}
-      <div style={{maxWidth:'1140px', margin:'0 auto', padding:'36px 24px'}}>
-
-        {/* Evidence Analysis tab */}
-        {tab === 'evidence' && (
-          <>
-            <div style={{marginBottom:'32px'}}>
-              <h1 style={{
-                fontSize:'28px', fontWeight:'700', color:'var(--text1)',
-                letterSpacing:'-0.04em', marginBottom:'8px'
-              }}>
-                Evidence Analysis
-              </h1>
-              <p style={{fontSize:'13px', color:'var(--text2)', lineHeight:'1.6'}}>
-                Upload an email, log file, or paste text — the agent automatically
-                extracts IPs, domains, checks threat intel, and delivers a
-                full FP/TP verdict.
-              </p>
-            </div>
-
-            <FileUpload
-              onAnalyze={handleAnalyze}
-              loading={loading}
-              progress={progress}
-            />
-
-            {error && (
-              <div style={{
-                marginTop:'16px', padding:'14px 16px',
-                background:'rgba(239,68,68,0.08)',
-                border:'1px solid rgba(239,68,68,0.3)',
-                borderRadius:'10px', color:'#fca5a5', fontSize:'13px'
-              }}>
-                {error}
-              </div>
-            )}
-
-            {result && <ResultsView data={result} />}
-          </>
-        )}
-
-        {/* Threat Intel tab */}
-        {tab === 'threat' && <ThreatChecker />}
-
-        {/* URL Sandbox tab */}
-        {tab === 'sandbox' && (
-          <>
-            <div style={{marginBottom:'32px'}}>
-              <h1 style={{
-                fontSize:'28px', fontWeight:'700', color:'var(--text1)',
-                letterSpacing:'-0.04em', marginBottom:'8px'
-              }}>
-                URL Sandbox
-              </h1>
-              <p style={{fontSize:'13px', color:'var(--text2)', lineHeight:'1.6'}}>
-                Submit any URL to URLScan.io for live sandbox analysis —
-                get screenshot, server info, malicious verdict, and full
-                behavior report.
-              </p>
-            </div>
-            <SandboxView standalone />
-          </>
-        )}
-
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        padding: '4px 10px', borderRadius: 'var(--radius-sm)',
+        background: status?.provider_ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+        border: `1px solid ${status?.provider_ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+      }}>
+        <div style={{
+          width: '5px', height: '5px', borderRadius: '50%',
+          background: status?.provider_ok ? 'var(--green)' : '#ef4444',
+          boxShadow: status?.provider_ok ? '0 0 6px #10b981' : '0 0 6px #ef4444',
+        }} />
+        <span style={{ fontSize: 'var(--text-xs)', color: status?.provider_ok ? 'var(--green)' : '#fca5a5' }}>
+          {status ? `${status.provider} · ${status.model}` : 'connecting...'}
+        </span>
       </div>
+
+      {status && !status.provider_ok && status.error && (
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          fontSize: 'var(--text-xs)', color: '#fca5a5', maxWidth: '220px', lineHeight: 1.4,
+        }}>
+          <AlertTriangle size={12} /> {status.error}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Real backend progress would need a streaming/polling endpoint the
+// pipeline doesn't expose yet — until then, a skeleton is honest about
+// "working" without guessing at fake step names tied to nothing real.
+function AnalysisSkeleton() {
+  const shimmer = {
+    background: 'linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 37%, var(--bg2) 63%)',
+    backgroundSize: '400% 100%',
+    animation: 'skeleton-pulse 1.4s ease infinite',
+    borderRadius: 'var(--radius-lg)',
+  }
+  return (
+    <div style={{ marginTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div style={{ ...shimmer, height: '96px' }} />
+      <div style={{ ...shimmer, height: '260px' }} />
     </div>
   )
 }

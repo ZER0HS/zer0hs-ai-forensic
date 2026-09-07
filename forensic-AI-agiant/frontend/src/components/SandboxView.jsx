@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertTriangle, Camera, CircleCheck, Globe, Loader2, Package, ScanSearch, ShieldAlert } from 'lucide-react'
 import { apiClient } from '../api'
 
 export default function SandboxView({ urls, standalone }) {
@@ -68,14 +69,14 @@ export default function SandboxView({ urls, standalone }) {
         {/* Info row */}
         <div style={{display:'flex', gap:'20px', marginTop:'12px', flexWrap:'wrap'}}>
           {[
-            ['🌐', 'Powered by URLScan.io'],
-            ['📸', 'Full page screenshot'],
-            ['🔍', 'Behavior analysis'],
-            ['⚠️',  'Do not submit URLs with passwords or PII'],
-          ].map(([icon, text]) => (
+            [Globe, 'Powered by URLScan.io'],
+            [Camera, 'Full page screenshot'],
+            [ScanSearch, 'Behavior analysis'],
+            [AlertTriangle, 'Do not submit URLs with passwords or PII'],
+          ].map(([Icon, text]) => (
             <span key={text} style={{fontSize:'11px', color:'var(--text3)',
               display:'flex', alignItems:'center', gap:'5px'}}>
-              {icon} {text}
+              <Icon size={12} /> {text}
             </span>
           ))}
         </div>
@@ -105,16 +106,20 @@ export default function SandboxView({ urls, standalone }) {
                   <span style={{fontSize:'12px', color:'var(--text2)',
                     fontFamily:'monospace', flex:1, wordBreak:'break-all'}}>{url}</span>
                   <button
+                    type="button"
                     onClick={() => scan(url)}
                     disabled={loading[url]}
                     style={{
+                      display:'flex', alignItems:'center', gap:'5px',
                       padding:'7px 16px', flexShrink:0,
                       background: loading[url] ? 'var(--bg4)' : 'var(--bg3)',
                       color: loading[url] ? 'var(--text3)' : 'var(--text2)',
                       border:'1px solid var(--border)', borderRadius:'8px',
                       fontSize:'12px', cursor: loading[url] ? 'wait' : 'pointer'
                     }}>
-                    {loading[url] ? '⏳ Scanning...' : '📦 Sandbox'}
+                    {loading[url]
+                      ? <><Loader2 size={12} style={{animation:'spin 0.8s linear infinite'}} /> Scanning...</>
+                      : <><Package size={12} /> Sandbox</>}
                   </button>
                 </div>
                 {results[url] && <SandboxCard url={url} result={results[url]} inline />}
@@ -129,18 +134,20 @@ export default function SandboxView({ urls, standalone }) {
 
 function SandboxCard({ url, result: r, inline }) {
   if (r.status === 'error') return (
-    <div style={{padding:'10px 14px', background:'rgba(239,68,68,0.08)',
+    <div style={{display:'flex', alignItems:'center', gap:'6px',
+      padding:'10px 14px', background:'rgba(239,68,68,0.08)',
       border:'1px solid rgba(239,68,68,0.2)', borderRadius:'8px',
       fontSize:'12px', color:'#fca5a5'}}>
-      ⚠ {r.error}
+      <AlertTriangle size={13} /> {r.error}
     </div>
   )
 
   if (r.status === 'pending') return (
     <div style={{padding:'12px 14px', background:'rgba(245,158,11,0.08)',
       border:'1px solid rgba(245,158,11,0.2)', borderRadius:'8px'}}>
-      <p style={{fontSize:'12px', color:'#fcd34d', marginBottom:'6px'}}>
-        ⏳ {r.message}
+      <p style={{display:'flex', alignItems:'center', gap:'6px',
+        fontSize:'12px', color:'#fcd34d', marginBottom:'6px'}}>
+        <Loader2 size={13} style={{animation:'spin 0.8s linear infinite'}} /> {r.message}
       </p>
       <a href={r.result_url} target="_blank" rel="noreferrer"
         style={{fontSize:'12px', color:'var(--blue)'}}>
@@ -161,11 +168,12 @@ function SandboxCard({ url, result: r, inline }) {
       {/* Verdict row */}
       <div style={{display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px', flexWrap:'wrap'}}>
         <span style={{
+          display:'flex', alignItems:'center', gap:'6px',
           fontSize:'13px', fontWeight:'700', padding:'5px 14px',
           borderRadius:'20px', background: malBg, color: malColor,
           border:`1px solid ${malColor}44`
         }}>
-          {r.malicious ? '🚨 MALICIOUS' : '✅ CLEAN'}
+          {r.malicious ? <><ShieldAlert size={14} /> MALICIOUS</> : <><CircleCheck size={14} /> CLEAN</>}
         </span>
 
         <div style={{display:'flex', alignItems:'center', gap:'8px'}}>

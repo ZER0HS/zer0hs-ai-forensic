@@ -1,3 +1,14 @@
+import { severityConfig } from './ui/severity'
+
+const AUTH_COLOR = {
+  pass: severityConfig('clean').accent,
+  fail: severityConfig('critical').accent,
+  softfail: severityConfig('critical').accent,
+}
+
+const authColor = v => AUTH_COLOR[v] || '#64748b'
+const sevColor  = s => severityConfig(s).accent
+
 export default function EmailHeaders({ data }) {
   if (!data) return (
     <div style={{padding:'20px', textAlign:'center'}}>
@@ -6,12 +17,6 @@ export default function EmailHeaders({ data }) {
       </p>
     </div>
   )
-
-  const authColor = v =>
-    v === 'pass' ? '#10b981' : v === 'fail' || v === 'softfail' ? '#ef4444' : '#64748b'
-
-  const sevColor = s =>
-    s === 'critical' ? '#ef4444' : s === 'high' ? '#f97316' : '#f59e0b'
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap:'14px'}}>

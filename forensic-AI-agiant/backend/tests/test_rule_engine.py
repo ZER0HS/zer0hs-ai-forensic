@@ -171,3 +171,19 @@ def test_shortcircuit_forensic_uses_literal_evidence_slice():
     forensic = shortcircuit_forensic("hello world, this is the evidence", findings)
     assert forensic["highlight"]["text"] == "hello world, this is the evidence"
     assert "<" not in forensic["highlight"]["text"]
+
+
+def test_shortcircuit_forensic_surfaces_hard_indicators_as_anomalies():
+    """Found via a live end-to-end run: a definite-TP short-circuit left
+    `anomalies` empty, so the UI showed "0 anomalies" on a confirmed
+    phishing verdict — reading as "nothing found" right next to a case
+    summary listing exactly what was found. The rule engine's hard
+    indicators should show up as anomalies too, not just in the summary."""
+    findings = run_rules(
+        text="click here",
+        indicators={"ips": ["1.2.3.4"], "domains": ["paypa1.com"]},
+        threat_results=[{"type": "ip", "value": "1.2.3.4", "abuse_score": 80}],
+    )
+    forensic = shortcircuit_forensic("click here", findings)
+    assert len(forensic["anomalies"]) > 0
+    assert all(a["severity"] == "critical" for a in forensic["anomalies"])
