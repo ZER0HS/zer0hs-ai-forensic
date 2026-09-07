@@ -179,3 +179,19 @@ def test_health_and_status_stay_open_without_a_key(client, monkeypatch):
     monkeypatch.setattr(main, "_API_KEY", "test-secret")
     assert client.get("/health").status_code == 200
     assert client.get("/status").status_code == 200
+
+
+@pytest.mark.respx(base_url="http://ollama-host:11434")
+def test_status_checks_ollama_at_the_configured_url(client, respx_mock, monkeypatch):
+    """Regression test: /status used to hardcode localhost:11434, which
+    silently broke the connectivity check in Docker (where Ollama runs on
+    the host, not inside the backend container) even though the actual
+    generation calls in llm_client.py already respected OLLAMA_URL."""
+    monkeypatch.setenv("OLLAMA_URL", "http://ollama-host:11434")
+    route = respx_mock.get("/api/tags").mock(
+        return_value=httpx.Response(200, json={"models": [{"name": "qwen2.5:14b"}]})
+    )
+    r = client.get("/status")
+    assert r.status_code == 200
+    assert route.called
+    assert r.json()["provider_ok"] is True

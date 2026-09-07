@@ -14,7 +14,8 @@ engine's hard findings before being trusted.
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # macOS/Linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime + test deps
+# pip install -r requirements.txt     # runtime only (e.g. for a Docker image)
 cp .env.example .env           # then fill in real values
 ```
 

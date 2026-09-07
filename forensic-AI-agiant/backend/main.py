@@ -111,8 +111,9 @@ async def status():
     if provider == "ollama":
         try:
             import httpx
+            ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
             async with httpx.AsyncClient(timeout=3) as client:
-                r = await client.get("http://localhost:11434/api/tags")
+                r = await client.get(f"{ollama_url}/api/tags")
                 if r.status_code == 200:
                     models = [m["name"] for m in r.json().get("models", [])]
                     if any(model in m for m in models):
