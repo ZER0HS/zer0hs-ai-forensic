@@ -3,16 +3,24 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+import confirmed_indicators
+
 FEEDBACK_DIR = Path("feedback")
 FEEDBACK_DIR.mkdir(exist_ok=True)
 
 def save_analysis(case_data: dict) -> str:
     """Save analysis for human review"""
     case_id = f"CASE-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{str(uuid.uuid4())[:6].upper()}"
-    
-    verdict = case_data.get("case_verdict", {})
 
-    # Never save raw evidence text — only metadata and results
+    verdict       = case_data.get("case_verdict", {})
+    rule_findings = case_data.get("rule_findings", {})
+
+    # Never save raw evidence text — only metadata and results. The
+    # keyword/typosquat fields below are short, structured matches
+    # against a fixed vocabulary this code already controls (not evidence
+    # text), which scripts/suggest_rules.py reads to propose new entries
+    # for that vocabulary — see that script for why it can't do more than
+    # this without storing raw text.
     safe_data = {
         "case_id":         case_id,
         "timestamp":       datetime.now(timezone.utc).isoformat(),
@@ -21,7 +29,10 @@ def save_analysis(case_data: dict) -> str:
         "llm_risk_level":  verdict.get("risk_level"),
         "needs_review":    verdict.get("verdict") == "NEEDS_REVIEW",
         "review_reason":   verdict.get("review_reason"),
-        "rule_score":      case_data.get("rule_findings", {}).get("rule_score", 0),
+        "rule_score":      rule_findings.get("rule_score", 0),
+        "hard_tp_indicators": rule_findings.get("hard_tp_indicators", []),
+        "typosquat_results":  rule_findings.get("typosquat_results", []),
+        "phishing_keywords_matched": rule_findings.get("text_analysis", {}).get("phishing_keywords", []),
         "indicators":      case_data.get("indicators", {}),
         "threat_results":  case_data.get("threat_results", []),
         "anomaly_count":   len(case_data.get("anomalies", [])),
@@ -30,7 +41,7 @@ def save_analysis(case_data: dict) -> str:
         "human_notes":     None,
         "reviewed_at":     None
     }
-    
+
     path = FEEDBACK_DIR / f"{case_id}.json"
     path.write_text(json.dumps(safe_data, indent=2))
     return case_id
@@ -40,13 +51,23 @@ def save_feedback(case_id: str, human_verdict: str,
     path = FEEDBACK_DIR / f"{case_id}.json"
     if not path.exists():
         return False
-    
+
     data = json.loads(path.read_text())
     data["human_verdict"] = human_verdict
     data["human_correct"] = is_correct
     data["human_notes"]   = notes
     data["reviewed_at"]   = datetime.now(timezone.utc).isoformat()
     path.write_text(json.dumps(data, indent=2))
+
+    # Remember every public indicator in this case under the human's
+    # confirmed verdict — see confirmed_indicators.py for why this is
+    # separate from threat_intel.py's 10-minute cache and never expires.
+    indicators = data.get("indicators", {})
+    for ip in indicators.get("ips", []):
+        confirmed_indicators.remember(ip, human_verdict, case_id, "ip")
+    for domain in indicators.get("domains", []):
+        confirmed_indicators.remember(domain, human_verdict, case_id, "domain")
+
     return True
 
 def list_cases(limit: int = 50) -> list:

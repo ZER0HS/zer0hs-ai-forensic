@@ -107,6 +107,47 @@ def test_malicious_attachment_hash_alone_is_definite_tp():
     assert any("malicious" in i.lower() for i in findings["hard_tp_indicators"])
 
 
+def test_confirmed_indicator_hit_is_definite_tp_even_without_a_high_ip_score():
+    """A domain flagged malicious via a live VirusTotal lookup alone
+    (no typosquat, no high-score IP alongside it) does NOT force an
+    override on its own — see the elif chain below. A confirmed hit from
+    confirmed_indicators.py is a stronger signal than that: a human has
+    already looked at this exact indicator and confirmed a verdict, so it
+    should win outright, the same way main.py's synthetic threat_results
+    entry for a confirmed hit is built (source contains "confirmed by
+    human feedback" and abuse_score=100)."""
+    findings = run_rules(
+        text="please review the attached invoice",
+        indicators={"ips": [], "domains": ["known-bad-vendor.com"]},
+        threat_results=[{
+            "type": "domain", "value": "known-bad-vendor.com",
+            "abuse_score": 100, "malicious_votes": 1, "suspicious_votes": 0,
+            "total_scanners": 1, "source": "confirmed by human feedback (CASE-OLD)",
+        }],
+    )
+    assert findings["verdict_override"] == "TP"
+    assert "known-bad-vendor.com" in findings["override_reason"]
+
+
+def test_plain_malicious_domain_vote_alone_is_not_yet_a_definite_override():
+    """Documents the existing, narrower behavior the test above
+    deliberately goes beyond: a single malicious VirusTotal vote with no
+    corroborating IP score is a hard_tp_indicator, but not (on its own)
+    enough for a definite override — that's what the ambiguous LLM path
+    is for."""
+    findings = run_rules(
+        text="please review",
+        indicators={"ips": [], "domains": ["some-domain.com"]},
+        threat_results=[{
+            "type": "domain", "value": "some-domain.com",
+            "abuse_score": 40, "malicious_votes": 2, "suspicious_votes": 0,
+            "total_scanners": 70, "source": "VirusTotal",
+        }],
+    )
+    assert findings["verdict_override"] is None
+    assert any("malicious" in i.lower() for i in findings["hard_tp_indicators"])
+
+
 def test_real_mime_attachment_with_dangerous_extension_plus_high_ip_is_definite_tp():
     """Found while running the accuracy benchmark: check_dangerous_attachments()
     only ever scanned the raw body text for a filename mention (e.g. "see

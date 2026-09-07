@@ -337,11 +337,20 @@ def run_rules(text: str, indicators: dict,
     max_ip_score     = 0
     max_domain_score = 0
     clean_ips        = []
-    
+    confirmed_tp_hits = []
+
     for r in threat_results:
         score = r.get("abuse_score", 0)
         val   = r.get("value", "")
-        
+
+        # A hit from confirmed_indicators.py — a human has already looked
+        # at this exact indicator before and confirmed a verdict for it.
+        # That's stronger evidence than any heuristic here, so it's
+        # tracked separately and forced to a definite override below
+        # regardless of what the per-type scoring finds.
+        if "confirmed by human feedback" in r.get("source", "") and score >= 100:
+            confirmed_tp_hits.append(val)
+
         if r.get("type") == "ip":
             if is_private_ip(val):
                 findings["hard_fp_indicators"].append(
@@ -399,7 +408,13 @@ def run_rules(text: str, indicators: dict,
     # exactly one reason is ever recorded.
     tp_count = len(findings["hard_tp_indicators"])
 
-    if malicious_hashes:
+    if confirmed_tp_hits:
+        findings["verdict_override"] = "TP"
+        findings["override_reason"]  = (
+            "DEFINITE TP: " + ", ".join(confirmed_tp_hits) +
+            " previously confirmed malicious by human feedback"
+        )
+    elif malicious_hashes:
         findings["verdict_override"] = "TP"
         findings["override_reason"]  = (
             "DEFINITE TP: Attachment hash confirmed malicious on "

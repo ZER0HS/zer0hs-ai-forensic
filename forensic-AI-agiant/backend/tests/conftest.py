@@ -44,6 +44,19 @@ def _isolate_feedback_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(feedback, "FEEDBACK_DIR", tmp_path)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_confirmed_indicators_store(tmp_path, monkeypatch):
+    """Same reasoning as _isolate_feedback_dir above, for the persistent
+    confirmed-indicator memory — a throwaway file per test, never the
+    real confirmed_indicators.json. Deliberately a separate subdirectory
+    from FEEDBACK_DIR (both default to the same tmp_path otherwise) so
+    feedback.py's `*.json` globs never pick up this file as a case."""
+    import confirmed_indicators
+    store_dir = tmp_path / "confirmed_store"
+    store_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr(confirmed_indicators, "STORE_FILE", store_dir / "confirmed_indicators.json")
+
+
 def load_fixture(name: str) -> bytes:
     return (FIXTURES_DIR / name).read_bytes()
 

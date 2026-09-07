@@ -13,6 +13,9 @@ venv/
 # Case data saved by the feedback loop (contains analysis metadata)
 feedback/*.json
 
+# Persistent confirmed-indicator memory (local runtime state, not source)
+confirmed_indicators.json
+
 # Test artifacts
 .pytest_cache/
 htmlcov/

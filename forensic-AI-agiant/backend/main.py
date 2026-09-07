@@ -74,6 +74,7 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 # ── Import modules AFTER app is created ───────────────────────────────────
+import confirmed_indicators
 from agent         import run_analysis
 from parser        import extract_text, ZipGuardError
 from threat_intel  import check_indicator, check_all_indicators
@@ -140,6 +141,34 @@ async def status():
         "urlscan":     bool(os.getenv("URLSCAN_API_KEY")),
     }
 
+def _confirmed_hits_to_threat_results(hits: list) -> list:
+    """Turns confirmed_indicators.get_hits() output into the same shape
+    threat_intel.check_ip()/check_domain() return, so run_rules() and
+    everything downstream treats a human-confirmed verdict exactly like a
+    fresh AbuseIPDB/VirusTotal result — no special-casing needed anywhere
+    else in the pipeline."""
+    results = []
+    for h in hits:
+        is_tp = h["verdict"] == "TP"
+        entry = {
+            "type":        h["type"],
+            "value":       h["indicator"],
+            "abuse_score": 100 if is_tp else 0,
+            "source":      f"confirmed by human feedback ({h['case_id']})",
+        }
+        if h["type"] == "domain":
+            entry["malicious_votes"]  = 1 if is_tp else 0
+            entry["suspicious_votes"] = 0
+            entry["total_scanners"]   = 1
+        else:
+            entry["country"]       = "Unknown"
+            entry["isp"]           = "Unknown"
+            entry["total_reports"] = 1 if is_tp else 0
+            entry["usage_type"]    = "Unknown"
+        results.append(entry)
+    return results
+
+
 # ── Main analysis endpoint ────────────────────────────────────────────────
 @app.post("/analyze", dependencies=[Depends(require_api_key)])
 @limiter.limit("10/minute")
@@ -166,12 +195,27 @@ async def analyze(
                     ip not in indicators.get("private_ips", [])):
                     indicators["ips"].append(ip)
 
-        # Step 2 — threat intel + attachment hash checks, in parallel
+        # Step 1.5 — check the confirmed-indicator memory before spending
+        # any threat-intel quota or LLM tokens on indicators a human has
+        # already judged. A hit here needs no fresh API call at all.
+        confirmed_hits = confirmed_indicators.get_hits(indicators)
+        confirmed_values = {h["indicator"] for h in confirmed_hits}
+        if confirmed_hits:
+            logger.info("Confirmed-indicator memory hit, skipping fresh lookup for: %s",
+                        [h["indicator"] for h in confirmed_hits])
+        remaining_indicators = {
+            "ips":     [i for i in indicators.get("ips", []) if i not in confirmed_values],
+            "domains": [d for d in indicators.get("domains", []) if d not in confirmed_values],
+        }
+
+        # Step 2 — threat intel (only for indicators without a confirmed
+        # verdict) + attachment hash checks, in parallel
         attachments = eml_data.get("attachments", []) if eml_data else []
-        threat_results, hash_results = await asyncio.gather(
-            check_all_indicators(indicators),
+        live_threat_results, hash_results = await asyncio.gather(
+            check_all_indicators(remaining_indicators),
             check_all_hashes(attachments),
         )
+        threat_results = live_threat_results + _confirmed_hits_to_threat_results(confirmed_hits)
 
         # Step 3 — deterministic rule engine (ground truth — LLM can't override it)
         rule_findings = run_rules(raw_text, indicators, threat_results, hash_results, attachments)
