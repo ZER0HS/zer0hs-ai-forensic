@@ -46,18 +46,34 @@ pytest
 ```
 
 The suite (`tests/`) covers the deterministic modules (extractor, rule
-engine, header parser) as pure unit tests, the full `/analyze` pipeline as
-integration tests against a mocked LLM and mocked threat-intel HTTP calls
-(no live network calls, ever — `tests/conftest.py` force-blanks every API
-key so a forgotten mock fails loudly instead of hitting a real service),
-and a fixture set of adversarial `.eml` files under `tests/fixtures/`
-(typosquatting + malicious IP, a legitimate urgent business email as the
-false-positive stress test, malformed/broken MIME, and a prompt-injection
-payload in the body). Several tests intentionally document known
-limitations rather than silently assuming they're handled — e.g. the
-English-only keyword lists missing Arabic-language social engineering, or
-a punycode homoglyph domain evading the plain-text typosquat check — see
-their docstrings for the reasoning and the recommended fix.
+engine, header parser, schemas) as pure unit tests, the full `/analyze`
+pipeline as integration tests against a mocked LLM and mocked threat-intel
+HTTP calls (no live network calls, ever — `tests/conftest.py` force-blanks
+every API key so a forgotten mock fails loudly instead of hitting a real
+service), and a fixture set of adversarial `.eml` files under
+`tests/fixtures/`: typosquatting plus a malicious IP, a legitimate urgent
+business email as the false-positive stress test, malformed and broken
+MIME, a prompt-injection payload in the body, and an Arabic-language
+phishing email. A few tests document real, currently-open limitations
+rather than silently assuming they're handled, e.g. zero-width-character
+injection defeating plain substring keyword matching, or a typosquat
+brand name outside the hardcoded `TYPOSQUAT_BRANDS` list going
+unrecognized. See their docstrings for the reasoning.
+
+## Accuracy benchmark
+
+```bash
+python scripts/run_benchmark.py --markdown out.md
+```
+
+Runs the labeled set in `tests/benchmark/` (41 synthetic cases, roughly
+half phishing and half clean) through the real pipeline, offline from the
+HTTP layer, and reports accuracy/precision/recall plus a confusion
+matrix. This is separate from the pytest fixtures on purpose: it's a
+fixed benchmark for tracking regressions and getting a real number for
+the README, not a correctness test suite. See the root `README.md`'s
+performance section for the current result and what it does and doesn't
+claim.
 
 ## Architecture notes
 

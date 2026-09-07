@@ -1,16 +1,48 @@
-# React + Vite
+# Frontend — ForensicAI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React (Vite) frontend for the analysis pipeline described in the backend.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+cp .env.development .env.development.local   # optional, only if overriding defaults
+```
 
-## React Compiler
+`.env.development` already points `VITE_API_URL` at `http://localhost:8000`
+for local development. `VITE_API_KEY` should match the backend's `API_KEY`
+if you've set one (see `backend/.env.example`) — leave both unset for
+local development against a backend with no key configured.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run
 
-## Expanding the ESLint configuration
+```bash
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Requires the backend running separately on port 8000 (see
+`../backend/README.md`).
+
+## Build
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`. `vite.config.js` sets `base: '/forensic-AI-agiant/'`,
+so a production build expects to be served from that path, not the
+server root — see `Dockerfile` and `nginx.conf` for how that's handled in
+the Docker image.
+
+## Structure
+
+- `src/App.jsx`: layout (sidebar + top status bar) and tab routing between
+  the five screens (Analyze, Threat Intel, URL Sandbox, Case History,
+  Accuracy).
+- `src/components/ui/`: shared components (`Card`, `Badge`, `StatTile`,
+  `Button`, `TabBar`, `KeyValueTable`) and `severity.js`, the single
+  source of truth for severity-to-color mapping used everywhere a
+  critical/high/medium/low/clean badge appears.
+- `src/api.js`: the one place the backend URL and API key are read from
+  environment variables — every component imports `apiClient` from here
+  rather than hardcoding a URL.
