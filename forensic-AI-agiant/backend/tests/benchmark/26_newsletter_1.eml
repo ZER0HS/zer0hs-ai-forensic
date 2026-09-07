@@ -1,0 +1,16 @@
+From: Product Updates <updates@github.com>
+To: subscriber@example.com
+Subject: This week's product digest
+Date: Wed, 03 Sep 2025 09:00:00 +0000
+Message-ID: <795975547078901721@github.com>
+Received: from mail.github.com (unknown [1.1.1.1]) by mx.example.com; Wed, 3
+ Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Your monthly digest is here - product updates, community highlights, and what=
+'s coming next quarter.
+
+Unsubscribe: https://github.com/settings/notifications

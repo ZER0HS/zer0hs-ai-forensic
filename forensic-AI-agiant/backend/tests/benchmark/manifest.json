@@ -1,0 +1,248 @@
+[
+  {
+    "filename": "01_typosquat_paypal.eml",
+    "verdict": "TP",
+    "category": "typosquat_domain_plus_malicious_ip",
+    "note": "Number-substituted typosquat of PayPal's domain, sent from a real flagged IP."
+  },
+  {
+    "filename": "02_typosquat_microsoft.eml",
+    "verdict": "TP",
+    "category": "typosquat_domain_plus_malicious_ip",
+    "note": "Number-substituted typosquat of Microsoft's domain, sent from a real flagged IP."
+  },
+  {
+    "filename": "03_typosquat_docusign.eml",
+    "verdict": "TP",
+    "category": "typosquat_domain_plus_malicious_ip",
+    "note": "Number-substituted typosquat of DocuSign's domain, sent from a real flagged IP."
+  },
+  {
+    "filename": "04_typosquat_chase.eml",
+    "verdict": "TP",
+    "category": "typosquat_domain_plus_malicious_ip",
+    "note": "Number-substituted typosquat of Chase Bank's domain, sent from a real flagged IP."
+  },
+  {
+    "filename": "05_homoglyph_paypal.eml",
+    "verdict": "TP",
+    "category": "homoglyph_domain_plus_malicious_ip",
+    "note": "Punycode-encoded homoglyph domain impersonating PayPal."
+  },
+  {
+    "filename": "06_homoglyph_microsoft.eml",
+    "verdict": "TP",
+    "category": "homoglyph_domain_plus_malicious_ip",
+    "note": "Punycode-encoded homoglyph domain impersonating Microsoft."
+  },
+  {
+    "filename": "07_dangerous_attachment_invoice.exe.eml",
+    "verdict": "TP",
+    "category": "dangerous_attachment_plus_malicious_ip",
+    "note": "Executable attachment with a dangerous extension, sent from a flagged IP."
+  },
+  {
+    "filename": "08_dangerous_attachment_update.scr.eml",
+    "verdict": "TP",
+    "category": "dangerous_attachment_plus_malicious_ip",
+    "note": "Executable attachment with a dangerous extension, sent from a flagged IP."
+  },
+  {
+    "filename": "09_malicious_hash_eicar_0.eml",
+    "verdict": "TP",
+    "category": "malicious_attachment_hash",
+    "note": "Attachment is the industry-standard EICAR antivirus test file — universally flagged by VirusTotal, used here instead of real malware so the hash-based check can be tested safely."
+  },
+  {
+    "filename": "10_malicious_hash_eicar_1.eml",
+    "verdict": "TP",
+    "category": "malicious_attachment_hash",
+    "note": "Attachment is the industry-standard EICAR antivirus test file — universally flagged by VirusTotal, used here instead of real malware so the hash-based check can be tested safely."
+  },
+  {
+    "filename": "11_bec_ambiguous_0.eml",
+    "verdict": "TP",
+    "category": "bec_no_hard_indicators_ambiguous",
+    "note": "Business email compromise style: executive impersonation and a Reply-To mismatch, but no bad domain/IP/hash — no rule-engine override fires, this is meant to exercise the LLM path."
+  },
+  {
+    "filename": "12_bec_ambiguous_1.eml",
+    "verdict": "TP",
+    "category": "bec_no_hard_indicators_ambiguous",
+    "note": "Business email compromise style: executive impersonation and a Reply-To mismatch, but no bad domain/IP/hash — no rule-engine override fires, this is meant to exercise the LLM path."
+  },
+  {
+    "filename": "13_keyword_heavy_ambiguous_0.eml",
+    "verdict": "TP",
+    "category": "high_social_engineering_score_no_domain_ip",
+    "note": "No links, no attachments, no flagged domain or IP — pure urgency and social-engineering keyword density. Scores as a hard TP indicator but not a definite override on its own; goes to the LLM."
+  },
+  {
+    "filename": "14_keyword_heavy_ambiguous_1.eml",
+    "verdict": "TP",
+    "category": "high_social_engineering_score_no_domain_ip",
+    "note": "No links, no attachments, no flagged domain or IP — pure urgency and social-engineering keyword density. Scores as a hard TP indicator but not a definite override on its own; goes to the LLM."
+  },
+  {
+    "filename": "15_arabic_typosquat_paypal.eml",
+    "verdict": "TP",
+    "category": "arabic_typosquat_plus_malicious_ip",
+    "note": "Arabic-language phishing impersonating PayPal, same typosquat technique as the English cases — tests the Arabic keyword list and the language-agnostic domain check together."
+  },
+  {
+    "filename": "16_arabic_typosquat_microsoft.eml",
+    "verdict": "TP",
+    "category": "arabic_typosquat_plus_malicious_ip",
+    "note": "Arabic-language phishing impersonating Microsoft, same typosquat technique as the English cases — tests the Arabic keyword list and the language-agnostic domain check together."
+  },
+  {
+    "filename": "17_suspicious_link_shortener.eml",
+    "verdict": "TP",
+    "category": "shortened_link_plus_urgency_ambiguous",
+    "note": "A link-shortener URL (no domain reputation signal at all) paired with credential-harvesting language and a Reply-To mismatch."
+  },
+  {
+    "filename": "18_spoofed_it_password_reset.eml",
+    "verdict": "TP",
+    "category": "spoofed_internal_sender_ambiguous",
+    "note": "Impersonates an internal IT team with no external domain at all (From address spoofed to look internal) plus a Reply-To mismatch — no domain/IP signal, relies on the LLM reading the mismatch."
+  },
+  {
+    "filename": "19_internal_meeting_0.eml",
+    "verdict": "FP",
+    "category": "normal_internal_communication",
+    "note": "Ordinary scheduling email between colleagues, clean domain, no indicators."
+  },
+  {
+    "filename": "20_internal_meeting_1.eml",
+    "verdict": "FP",
+    "category": "normal_internal_communication",
+    "note": "Ordinary scheduling email between colleagues, clean domain, no indicators."
+  },
+  {
+    "filename": "21_internal_meeting_2.eml",
+    "verdict": "FP",
+    "category": "normal_internal_communication",
+    "note": "Ordinary scheduling email between colleagues, clean domain, no indicators."
+  },
+  {
+    "filename": "22_invoice_reminder_0.eml",
+    "verdict": "FP",
+    "category": "invoice_or_billing_from_known_vendor",
+    "note": "Routine billing email from a real vendor domain, no technical indicators."
+  },
+  {
+    "filename": "23_invoice_reminder_1.eml",
+    "verdict": "FP",
+    "category": "invoice_or_billing_from_known_vendor",
+    "note": "Routine billing email from a real vendor domain, no technical indicators."
+  },
+  {
+    "filename": "24_invoice_reminder_2.eml",
+    "verdict": "FP",
+    "category": "invoice_or_billing_from_known_vendor",
+    "note": "Routine billing email from a real vendor domain, no technical indicators."
+  },
+  {
+    "filename": "25_newsletter_0.eml",
+    "verdict": "FP",
+    "category": "marketing_newsletter",
+    "note": "Standard opt-in newsletter with an unsubscribe link, clean sender."
+  },
+  {
+    "filename": "26_newsletter_1.eml",
+    "verdict": "FP",
+    "category": "marketing_newsletter",
+    "note": "Standard opt-in newsletter with an unsubscribe link, clean sender."
+  },
+  {
+    "filename": "27_it_notification_0.eml",
+    "verdict": "FP",
+    "category": "internal_it_notification",
+    "note": "Routine internal IT notification from a known internal system."
+  },
+  {
+    "filename": "28_it_notification_1.eml",
+    "verdict": "FP",
+    "category": "internal_it_notification",
+    "note": "Routine internal IT notification from a known internal system."
+  },
+  {
+    "filename": "29_genuine_urgent_notice_0.eml",
+    "verdict": "FP",
+    "category": "genuine_urgent_notice_from_real_service",
+    "note": "Urgency-adjacent wording, but from the real service's own domain with clean authentication and no phishing-style pressure tactics — the false-positive stress test the review flagged specifically."
+  },
+  {
+    "filename": "30_genuine_urgent_notice_1.eml",
+    "verdict": "FP",
+    "category": "genuine_urgent_notice_from_real_service",
+    "note": "Urgency-adjacent wording, but from the real service's own domain with clean authentication and no phishing-style pressure tactics — the false-positive stress test the review flagged specifically."
+  },
+  {
+    "filename": "31_personal_urgent_but_clean_0.eml",
+    "verdict": "FP",
+    "category": "urgent_wording_no_technical_indicators",
+    "note": "Genuinely urgent-sounding personal request with zero technical indicators — tests that urgency alone, from a real colleague, isn't enough to trip a false alarm."
+  },
+  {
+    "filename": "32_personal_urgent_but_clean_1.eml",
+    "verdict": "FP",
+    "category": "urgent_wording_no_technical_indicators",
+    "note": "Genuinely urgent-sounding personal request with zero technical indicators — tests that urgency alone, from a real colleague, isn't enough to trip a false alarm."
+  },
+  {
+    "filename": "33_personal_urgent_but_clean_2.eml",
+    "verdict": "FP",
+    "category": "urgent_wording_no_technical_indicators",
+    "note": "Genuinely urgent-sounding personal request with zero technical indicators — tests that urgency alone, from a real colleague, isn't enough to trip a false alarm."
+  },
+  {
+    "filename": "34_clean_infra_mentioned_0.eml",
+    "verdict": "FP",
+    "category": "benign_public_infrastructure_mentioned",
+    "note": "Mentions a real, well-known public IP/domain in-line — checked and confirmed clean rather than assumed clean."
+  },
+  {
+    "filename": "35_clean_infra_mentioned_1.eml",
+    "verdict": "FP",
+    "category": "benign_public_infrastructure_mentioned",
+    "note": "Mentions a real, well-known public IP/domain in-line — checked and confirmed clean rather than assumed clean."
+  },
+  {
+    "filename": "36_arabic_clean_business_0.eml",
+    "verdict": "FP",
+    "category": "arabic_normal_business_communication",
+    "note": "Ordinary Arabic-language business email — balances the benchmark so Arabic isn't only represented on the phishing side."
+  },
+  {
+    "filename": "37_arabic_clean_business_1.eml",
+    "verdict": "FP",
+    "category": "arabic_normal_business_communication",
+    "note": "Ordinary Arabic-language business email — balances the benchmark so Arabic isn't only represented on the phishing side."
+  },
+  {
+    "filename": "38_arabic_clean_business_2.eml",
+    "verdict": "FP",
+    "category": "arabic_normal_business_communication",
+    "note": "Ordinary Arabic-language business email — balances the benchmark so Arabic isn't only represented on the phishing side."
+  },
+  {
+    "filename": "typosquat_phishing.eml",
+    "verdict": "TP",
+    "category": "typosquat_domain_plus_malicious_ip",
+    "note": "Original hand-written fixture, reused here as-is."
+  },
+  {
+    "filename": "legit_business.eml",
+    "verdict": "FP",
+    "category": "normal_internal_communication",
+    "note": "Original hand-written fixture, reused here as-is."
+  },
+  {
+    "filename": "arabic_phishing.eml",
+    "verdict": "TP",
+    "category": "arabic_typosquat_plus_malicious_ip",
+    "note": "Original hand-written fixture, reused here as-is."
+  }
+]

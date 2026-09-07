@@ -1,0 +1,13 @@
+From: IT Operations <it-ops@acme-consulting.com>
+To: all-staff@acme-consulting.com
+Subject: Scheduled maintenance notice
+Date: Thu, 04 Sep 2025 09:00:00 +0000
+Message-ID: <8931384476659822271@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [8.8.8.8]) by mx.example.com;
+ Thu, 4 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Your VPN client has been updated automatically. No restart required.

@@ -1,0 +1,14 @@
+From: Billing <billing@acme-consulting.com>
+To: you@example.com
+Subject: Invoice #4800 due this Friday
+Date: Tue, 02 Sep 2025 09:00:00 +0000
+Message-ID: <1840011238340377548@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [8.8.4.4]) by mx.example.com;
+ Tue, 2 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Just a reminder that invoice #4800 for last month's work is due this Friday. =
+Let me know if you have questions.

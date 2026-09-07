@@ -1,0 +1,29 @@
+From: IT Helpdesk <helpdesk@internal-updates-portal.com>
+To: employee@example.com
+Subject: Action required: install the attached update
+Date: Wed, 03 Sep 2025 10:30:00 +0000
+Message-ID: <2278064405625520213@internal-updates-portal.com>
+Received: from mail.internal-updates-portal.com (unknown [185.220.101.45]) by
+ mx.example.com; Wed, 3 Sep 2025 10:30:00 +0000
+Authentication-Results: mx.example.com; spf=fail; dkim=fail; dmarc=fail
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============8457791722375779398=="
+
+--===============8457791722375779398==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Please install the attached file immediately to keep your system compliant wi=
+th the new security policy. Failure to do so within 24 hours will result in a=
+ccount suspension.
+
+--===============8457791722375779398==
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Windows_Update.scr"
+MIME-Version: 1.0
+
+TVoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAA
+
+--===============8457791722375779398==--

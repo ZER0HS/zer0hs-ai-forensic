@@ -1,0 +1,15 @@
+From: Account Security <security-noreply@microsoft.com>
+To: you@example.com
+Subject: Your Microsoft password will expire soon
+Date: Fri, 05 Sep 2025 09:00:00 +0000
+Message-ID: <3506914699834302378@microsoft.com>
+Received: from mail.microsoft.com (unknown [8.8.8.8]) by mx.example.com; Fri,
+ 5 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Your organization requires you to change your password every 90 days. Your pa=
+ssword expires in 3 days. You can change it any time from your account settin=
+gs.

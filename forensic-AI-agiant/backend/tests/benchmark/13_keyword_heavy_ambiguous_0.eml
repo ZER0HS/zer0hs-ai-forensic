@@ -1,0 +1,14 @@
+From: Account Services <noreply@mail-service-0.net>
+To: employee@example.com
+Subject: Immediate action required
+Date: Sat, 06 Sep 2025 06:00:00 +0000
+Message-ID: <2407209928900485751@mail-service-0.net>
+Authentication-Results:
+ mx.example.com; spf=neutral; dkim=neutral; dmarc=neutral
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Your account will be suspended within 24 hours unless you verify your identit=
+y immediately. Confirm your identity now, act now, this is a security alert. =
+Unauthorized access detected on your account.

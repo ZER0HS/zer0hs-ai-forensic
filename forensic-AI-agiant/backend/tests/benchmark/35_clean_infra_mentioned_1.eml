@@ -1,0 +1,14 @@
+From: DevOps <devops@acme-consulting.com>
+To: eng-team@acme-consulting.com
+Subject: DNS change notice
+Date: Sun, 07 Sep 2025 09:00:00 +0000
+Message-ID: <5751559805471734440@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [1.0.0.1]) by mx.example.com;
+ Sun, 7 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Heads up, we're pointing the staging record at microsoft.com and using 8.8.8.=
+8 as a fallback resolver during the migration.

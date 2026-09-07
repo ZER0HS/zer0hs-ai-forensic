@@ -1,0 +1,14 @@
+From: Account Security <security-noreply@google.com>
+To: you@example.com
+Subject: Security alert: new sign-in to your Google Account
+Date: Fri, 05 Sep 2025 09:00:00 +0000
+Message-ID: <5455225857091415397@google.com>
+Received: from mail.google.com (unknown [8.8.8.8]) by mx.example.com; Fri, 5
+ Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+We noticed a new sign-in to your Google Account on a Windows device. If this =
+was you, no action is needed. If not, secure your account now.

@@ -1,0 +1,16 @@
+From:
+ =?utf-8?b?2LLZhdmK2YQg2KfZhNi52YXZhA==?= <colleague0@acme-consulting.com>
+To: you@example.com
+Subject: =?utf-8?b?2KfYrNiq2YXYp9i5INin2YTYutiv?=
+Date: Mon, 08 Sep 2025 09:00:00 +0000
+Message-ID: <7867092682556826366@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [1.0.0.1]) by mx.example.com;
+ Mon, 8 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
+
+2YXYsdit2KjYp9iMINmH2YQg2YrZhdmD2YbZhtinINmG2YLZhCDYp9is2KrZhdin2Lkg2KfZhNi6
+2K8g2KXZhNmJINin2YTYs9in2LnYqSDYp9mE2KvYp9mE2KvYqSDYqNiv2YTYp9mLINmF2YYg2KfZ
+hNir2KfZhtmK2KnYnyDZhtmB2LMg2KfZhNix2KfYqNi3Lgo=

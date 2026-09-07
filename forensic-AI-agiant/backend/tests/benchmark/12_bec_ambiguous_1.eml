@@ -1,0 +1,14 @@
+From: CFO <cfo@example-corp.co>
+To: accounts.payable@example.com
+Subject: Confidential - update banking details before Friday's payment
+Date: Fri, 05 Sep 2025 07:45:00 +0000
+Reply-To: payments-update@mail-forward.io
+Message-ID: <5336545855971426702@example-corp.co>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+We're updating the vendor's banking details before Friday's scheduled payment=
+. Please don't mention this to the vendor's usual contact until it's confirme=
+d, and reply to confirm you can process it in time.

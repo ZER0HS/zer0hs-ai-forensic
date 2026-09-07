@@ -1,0 +1,17 @@
+From: PayPal Support <support@xn--pypal-4ve.com>
+To: employee@example.com
+Subject: Security alert: unauthorized access detected
+Date: Tue, 02 Sep 2025 08:00:00 +0000
+Reply-To: attacker@freemail-relay.top
+Message-ID: <6612404743549700230@xn--pypal-4ve.com>
+Received: from mail.xn--pypal-4ve.com (unknown [185.220.101.45]) by
+ mx.example.com; Tue, 2 Sep 2025 08:00:00 +0000
+Authentication-Results: mx.example.com; spf=fail; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Your PayPal account shows signs of unauthorized access. Confirm your identity=
+ immediately: http://xn--pypal-4ve.com/confirm
+
+This is a security alert, act now.

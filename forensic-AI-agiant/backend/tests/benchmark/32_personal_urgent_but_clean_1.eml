@@ -1,0 +1,14 @@
+From: Colleague <colleague1@acme-consulting.com>
+To: you@example.com
+Subject: Quick favor
+Date: Sat, 06 Sep 2025 09:00:00 +0000
+Message-ID: <4760997281904799830@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [8.8.8.8]) by mx.example.com;
+ Sat, 6 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Quick one - do you have the slides ready? Need them before end of day for tom=
+orrow's review. Thanks!

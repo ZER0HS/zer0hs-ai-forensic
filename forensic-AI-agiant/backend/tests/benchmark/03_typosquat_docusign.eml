@@ -1,0 +1,21 @@
+From: DocuSign Security <security@docusign-secure-portal.com>
+To: employee@example.com
+Subject: Urgent: verify your account within 24 hours
+Date: Mon, 01 Sep 2025 03:14:00 +0000
+Reply-To: attacker@mail-relay-520.ru
+Message-ID: <6326376464739560884@docusign-secure-portal.com>
+Received: from mail.docusign-secure-portal.com (unknown [185.220.101.45]) by
+ mx.example.com; Mon, 1 Sep 2025 03:14:00 +0000
+Authentication-Results: mx.example.com; spf=fail; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Dear Customer,
+
+We detected unusual activity on your DocuSign account. Verify your identity w=
+ithin 24 hours or your account will be suspended.
+
+Verify now: http://docusign-secure-portal.com/login
+
+Do not reply to this email.

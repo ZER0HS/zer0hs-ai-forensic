@@ -1,0 +1,14 @@
+From: Billing <billing@acme-consulting.com>
+To: you@example.com
+Subject: Your receipt from Acme Consulting
+Date: Tue, 02 Sep 2025 09:00:00 +0000
+Message-ID: <9205130847746667879@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [8.8.4.4]) by mx.example.com;
+ Tue, 2 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Thanks for your payment. Attached is your receipt for invoice #4801. Let us k=
+now if anything looks off.

@@ -1,0 +1,14 @@
+From: CEO <ceo@example-corp.co>
+To: wire.transfer@example.com
+Subject: Urgent wire transfer needed today
+Date: Fri, 05 Sep 2025 07:45:00 +0000
+Reply-To: external-finance@mail-forward.io
+Message-ID: <8542110468142482319@example-corp.co>
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Sarah, I need you to process a wire transfer for a vendor payment today befor=
+e the bank cuts off. I'm in meetings all day, reply here and I'll send the de=
+tails. Please keep this between us for now.

@@ -1,0 +1,14 @@
+From: Account Services <noreply@mail-service-1.net>
+To: employee@example.com
+Subject: Immediate action required
+Date: Sat, 06 Sep 2025 06:00:00 +0000
+Message-ID: <2407209928900485751@mail-service-1.net>
+Authentication-Results:
+ mx.example.com; spf=neutral; dkim=neutral; dmarc=neutral
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+URGENT ACTION REQUIRED: unusual activity detected on your account. Your passw=
+ord has expired and unauthorized access was detected. Verify immediately or y=
+our account will be deleted. Limited time.

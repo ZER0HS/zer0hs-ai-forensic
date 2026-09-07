@@ -1,0 +1,21 @@
+From: Microsoft Security <security@micros0ft-alert-center.com>
+To: employee@example.com
+Subject: Urgent: verify your account within 24 hours
+Date: Mon, 01 Sep 2025 03:14:00 +0000
+Reply-To: attacker@mail-relay-293.ru
+Message-ID: <6326376464739560884@micros0ft-alert-center.com>
+Received: from mail.micros0ft-alert-center.com (unknown [185.220.101.45]) by
+ mx.example.com; Mon, 1 Sep 2025 03:14:00 +0000
+Authentication-Results: mx.example.com; spf=fail; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Dear Customer,
+
+We detected unusual activity on your Microsoft account. Verify your identity =
+within 24 hours or your account will be suspended.
+
+Verify now: http://micros0ft-alert-center.com/login
+
+Do not reply to this email.

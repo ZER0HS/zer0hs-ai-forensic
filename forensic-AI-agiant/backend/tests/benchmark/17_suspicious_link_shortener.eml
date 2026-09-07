@@ -1,0 +1,14 @@
+From: HR Department <hr@example-corp.com>
+To: all-staff@example.com
+Subject: Updated benefits enrollment - action needed
+Date: Mon, 08 Sep 2025 11:00:00 +0000
+Reply-To: hr-updates@external-mail.co
+Message-ID: <6389014981426345222@example-corp.com>
+Authentication-Results: mx.example.com; spf=softfail; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Please review and confirm your updated benefits enrollment before the deadlin=
+e today. Log in here: http://bit.ly/3xR7enroll and confirm your account crede=
+ntials to continue.

@@ -1,0 +1,14 @@
+From: Colleague <colleague0@acme-consulting.com>
+To: you@example.com
+Subject: Re: meeting time
+Date: Mon, 01 Sep 2025 09:00:00 +0000
+Message-ID: <8924264349987054063@acme-consulting.com>
+Received: from mail.acme-consulting.com (unknown [8.8.8.8]) by mx.example.com;
+ Mon, 1 Sep 2025 09:00:00 +0000
+Authentication-Results: mx.example.com; spf=pass; dkim=pass; dmarc=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi team, moving our 2pm sync to 3pm tomorrow, same link. Let me know if that =
+doesn't work.
