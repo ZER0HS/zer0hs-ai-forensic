@@ -237,14 +237,16 @@ MANDATORY RULES:
 
 
 async def score_single(
-    indicator:   str,
-    threat_data: dict,
-    context:     str = ""
+    indicator:        str,
+    threat_data:      dict,
+    context:          str  = "",
+    typosquat_result: dict = None,
 ) -> dict:
 
     score  = threat_data.get("abuse_score", 0)
     itype  = threat_data.get("type", "unknown")
     source = threat_data.get("source", "unknown")
+    typosquat_result = typosquat_result or {}
 
     if score >= 75:
         pre = "CRITICAL — very high abuse confidence, almost certainly malicious"
@@ -257,6 +259,17 @@ async def score_single(
     else:
         pre = "CLEAN — no significant abuse reports found"
 
+    typosquat_block = ""
+    if typosquat_result.get("detected"):
+        typosquat_block = f"""
+DETERMINISTIC RULE ENGINE FINDING (trust this — it's arithmetic, not judgment):
+  This domain is flagged as impersonating '{typosquat_result.get('brand')}'
+  via {typosquat_result.get('technique')}. Treat this the same way a
+  confirmed typosquat is treated everywhere else in this system: it is
+  strong, standalone evidence of TP regardless of how clean the raw abuse
+  score looks, since a newly-registered lookalike domain often has no
+  abuse reports yet precisely because it's new."""
+
     # `context` comes straight from a user-supplied form field — treat it
     # with the same untrusted-content discipline as evidence text.
     prompt = f"""Analyze this single network indicator.
@@ -267,6 +280,7 @@ INDICATOR:
   Source:         {source}
   Abuse score:    {score}/100
   Pre-assessment: {pre}
+{typosquat_block}
 
 FULL THREAT DATA:
 {json.dumps(threat_data, indent=2)}
@@ -298,8 +312,20 @@ Return ONLY this JSON:
 
     result = await ask_llm_json(prompt, ANALYST_SYSTEM, SingleIndicatorVerdict, max_tokens=600)
 
-    # Hard overrides for single indicator
-    if score < 10 and not context:
+    # Hard overrides for single indicator — a confirmed typosquat wins
+    # outright, same trust hierarchy as the main /analyze pipeline: it's
+    # deterministic rule-engine output, not a judgment call, and it beats
+    # a clean-looking abuse score the same way it does there (a brand-new
+    # lookalike domain often has zero abuse reports yet precisely because
+    # it's new). Checked before the score-based overrides below so it
+    # can't be masked by an unrelated clean score.
+    if typosquat_result.get("detected"):
+        result.verdict    = "TP"
+        result.confidence = max(result.confidence, 90)
+        result.risk_level = "high" if result.risk_level not in ("critical", "high") else result.risk_level
+        result.mitre_technique = result.mitre_technique or "T1566.002 - Phishing: Spearphishing Link"
+
+    elif score < 10 and not context:
         result.verdict    = "FP"
         result.confidence = 90
         result.risk_level = "clean"

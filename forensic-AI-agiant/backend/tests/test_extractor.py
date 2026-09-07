@@ -1,4 +1,10 @@
-from extractor import extract_indicators
+from extractor import extract_domain_from_url, extract_indicators
+
+
+def test_extract_domain_from_url_handles_scheme_path_and_port():
+    assert extract_domain_from_url("http://paypa1-verify.com/login?x=1") == "paypa1-verify.com"
+    assert extract_domain_from_url("https://example.com:8443/a/b") == "example.com"
+    assert extract_domain_from_url("example.com/no-scheme") == "example.com"
 
 
 def test_extracts_public_ip():

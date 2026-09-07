@@ -1,4 +1,19 @@
 import re
+from urllib.parse import urlparse
+
+
+def extract_domain_from_url(url: str) -> str:
+    """Best-effort extraction of the bare hostname from a URL, for
+    anything that needs to run a domain/IP reputation check on a URL
+    rather than a raw indicator (the Sandbox tab's fast "Check" action)."""
+    url = url.strip()
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.\-]*://', url):
+        url = "https://" + url
+    try:
+        return (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return ""
+
 
 def extract_indicators(text: str) -> dict:
     ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'

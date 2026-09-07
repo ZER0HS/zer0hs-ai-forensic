@@ -78,9 +78,9 @@ from agent         import run_analysis
 from parser        import extract_text, ZipGuardError
 from threat_intel  import check_indicator, check_all_indicators
 from fp_tp_scorer  import score_case, score_single
-from extractor     import extract_indicators
+from extractor     import extract_domain_from_url, extract_indicators
 from sandbox       import sandbox_url, check_all_hashes
-from rule_engine   import run_rules, shortcircuit_forensic, shortcircuit_verdict
+from rule_engine   import check_typosquatting, run_rules, shortcircuit_forensic, shortcircuit_verdict
 from knowledge_base import get_relevant_patterns
 from feedback      import (
     get_accuracy_stats, get_case, get_verdict_distribution,
@@ -247,21 +247,55 @@ async def threat_check(
         )
 
 # ── URL sandbox ───────────────────────────────────────────────────────────
-@app.post("/sandbox", dependencies=[Depends(require_api_key)])
-@limiter.limit("5/minute")
-async def sandbox(
+# Two separate actions rather than one: Check is fast (threat intel + the
+# rule engine's typosquat check, no screenshot) and gives a real FP/TP
+# verdict in seconds; Scan is the slow URLScan.io submission, opt-in and
+# clearly labeled as such. Scan always includes the same verdict Check
+# would produce, run concurrently with the URLScan wait so combining them
+# costs nothing extra — a screenshot with no reasoning attached is a
+# shallow answer for something that took 15-45 seconds to get.
+async def _check_url_verdict(url: str, context: str = "") -> dict:
+    domain = extract_domain_from_url(url) or url.strip()
+    threat_data      = await check_indicator(domain)
+    typosquat_result = check_typosquatting(domain)
+    scoring          = await score_single(domain, threat_data, context, typosquat_result)
+    return {
+        "indicator":    domain,
+        "threat_intel": threat_data,
+        "typosquat":    typosquat_result,
+        "ai_verdict":   scoring,
+    }
+
+
+@app.post("/sandbox/check", dependencies=[Depends(require_api_key)])
+@limiter.limit("20/minute")
+async def sandbox_check(
     request: Request,
-    url:     str = Form(...)
+    url:     str = Form(...),
+    context: str = Form(""),
 ):
     try:
-        result = await sandbox_url(url)
-        return result
+        return await _check_url_verdict(url, context)
     except Exception as e:
-        logger.exception("Sandbox failed")
-        return JSONResponse(
-            {"error": f"Sandbox failed: {str(e)}"},
-            status_code=500
+        logger.exception("Sandbox check failed")
+        return JSONResponse({"error": f"Check failed: {str(e)}"}, status_code=500)
+
+
+@app.post("/sandbox/scan", dependencies=[Depends(require_api_key)])
+@limiter.limit("5/minute")
+async def sandbox_scan(
+    request: Request,
+    url:     str = Form(...),
+):
+    try:
+        scan_result, verdict_result = await asyncio.gather(
+            sandbox_url(url),
+            _check_url_verdict(url),
         )
+        return {**scan_result, "check": verdict_result}
+    except Exception as e:
+        logger.exception("Sandbox scan failed")
+        return JSONResponse({"error": f"Scan failed: {str(e)}"}, status_code=500)
 
 # ── Human feedback ────────────────────────────────────────────────────────
 @app.post("/feedback")

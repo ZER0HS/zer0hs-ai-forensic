@@ -1,24 +1,42 @@
 import { useState } from 'react'
-import { AlertTriangle, Camera, CircleCheck, Globe, Loader2, Package, ScanSearch, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Camera, CircleCheck, Globe, Loader2, Package, Search, ShieldAlert } from 'lucide-react'
 import { apiClient } from '../api'
+import SeverityBadge from './ui/SeverityBadge'
 
 export default function SandboxView({ urls, standalone }) {
-  const [results, setResults] = useState({})
-  const [loading, setLoading] = useState({})
-  const [custom, setCustom]   = useState('')
+  // Keyed by URL: { check: <sandbox/check response>, scan: <sandbox/scan response> }
+  const [results, setResults]     = useState({})
+  const [checking, setChecking]   = useState({})
+  const [scanning, setScanning]   = useState({})
+  const [custom, setCustom]       = useState('')
 
-  async function scan(url) {
-    const key = url
-    setLoading(p => ({...p, [key]: true}))
+  async function runCheck(url) {
+    setChecking(p => ({...p, [url]: true}))
     try {
       const form = new FormData()
       form.append('url', url)
-      const { data } = await apiClient.post('/sandbox', form)
-      setResults(p => ({...p, [key]: data}))
-    } catch(e) {
-      setResults(p => ({...p, [key]: {error: 'Scan failed — check backend', status:'error'}}))
+      const { data } = await apiClient.post('/sandbox/check', form)
+      setResults(p => ({...p, [url]: {...p[url], check: data}}))
+    } catch {
+      setResults(p => ({...p, [url]: {...p[url], check: {error: 'Check failed — check backend'}}}))
     }
-    setLoading(p => ({...p, [key]: false}))
+    setChecking(p => ({...p, [url]: false}))
+  }
+
+  async function runScan(url) {
+    setScanning(p => ({...p, [url]: true}))
+    try {
+      const form = new FormData()
+      form.append('url', url)
+      const { data } = await apiClient.post('/sandbox/scan', form)
+      // The scan response already carries the same verdict Check would
+      // produce (computed concurrently server-side), so this always
+      // fills in `check` too even if Check was never run separately.
+      setResults(p => ({...p, [url]: {...p[url], scan: data, check: data.check || p[url]?.check}}))
+    } catch {
+      setResults(p => ({...p, [url]: {...p[url], scan: {error: 'Scan failed — check backend', status: 'error'}}}))
+    }
+    setScanning(p => ({...p, [url]: false}))
   }
 
   return (
@@ -30,13 +48,13 @@ export default function SandboxView({ urls, standalone }) {
       }}>
         <label style={{fontSize:'11px', color:'var(--text3)', display:'block',
           marginBottom:'10px', textTransform:'uppercase', letterSpacing:'0.06em'}}>
-          URL to sandbox
+          URL to check or sandbox
         </label>
         <div style={{display:'flex', gap:'10px'}}>
           <input
             value={custom}
             onChange={e => setCustom(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && custom && scan(custom)}
+            onKeyDown={e => e.key === 'Enter' && custom && runCheck(custom)}
             placeholder="https://suspicious-site.com/path?id=abc"
             style={{
               flex:1, padding:'12px 16px',
@@ -48,30 +66,26 @@ export default function SandboxView({ urls, standalone }) {
             onFocus={e => e.target.style.borderColor = 'var(--border2)'}
             onBlur={e  => e.target.style.borderColor = 'var(--border)'}
           />
-          <button
-            onClick={() => custom.trim() && scan(custom.trim())}
-            disabled={!custom.trim() || loading[custom]}
-            style={{
-              padding:'12px 24px',
-              background: loading[custom]
-                ? 'var(--bg4)'
-                : 'linear-gradient(135deg, #7c3aed, #6366f1)',
-              color:'white', border:'none', borderRadius:'10px',
-              fontSize:'13px', fontWeight:'600',
-              cursor: loading[custom] ? 'not-allowed' : 'pointer',
-              flexShrink:0, transition:'opacity 0.15s',
-              opacity: !custom.trim() ? 0.5 : 1
-            }}>
-            {loading[custom] ? 'Scanning...' : 'Submit to Sandbox'}
-          </button>
+          <ActionButton
+            label="Check" loadingLabel="Checking..." icon={Search}
+            loading={checking[custom]} disabled={!custom.trim() || checking[custom]}
+            variant="primary"
+            onClick={() => custom.trim() && runCheck(custom.trim())}
+          />
+          <ActionButton
+            label="Scan" loadingLabel="Scanning..." icon={Package}
+            loading={scanning[custom]} disabled={!custom.trim() || scanning[custom]}
+            variant="secondary"
+            onClick={() => custom.trim() && runScan(custom.trim())}
+          />
         </div>
 
         {/* Info row */}
         <div style={{display:'flex', gap:'20px', marginTop:'12px', flexWrap:'wrap'}}>
           {[
-            [Globe, 'Powered by URLScan.io'],
-            [Camera, 'Full page screenshot'],
-            [ScanSearch, 'Behavior analysis'],
+            [Search, 'Check: threat intel + rule engine, seconds'],
+            [Globe, 'Scan: URLScan.io, 15-45s, screenshot + behavior'],
+            [Camera, 'Scan includes the same verdict as Check'],
             [AlertTriangle, 'Do not submit URLs with passwords or PII'],
           ].map(([Icon, text]) => (
             <span key={text} style={{fontSize:'11px', color:'var(--text3)',
@@ -85,7 +99,7 @@ export default function SandboxView({ urls, standalone }) {
       {/* Result for manually entered URL */}
       {custom && results[custom] && (
         <div style={{marginBottom:'20px'}}>
-          <SandboxCard url={custom} result={results[custom]} />
+          <UrlResultCard url={custom} entry={results[custom]} />
         </div>
       )}
 
@@ -105,24 +119,18 @@ export default function SandboxView({ urls, standalone }) {
                 <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom: results[url] ? '14px' : 0}}>
                   <span style={{fontSize:'12px', color:'var(--text2)',
                     fontFamily:'monospace', flex:1, wordBreak:'break-all'}}>{url}</span>
-                  <button
-                    type="button"
-                    onClick={() => scan(url)}
-                    disabled={loading[url]}
-                    style={{
-                      display:'flex', alignItems:'center', gap:'5px',
-                      padding:'7px 16px', flexShrink:0,
-                      background: loading[url] ? 'var(--bg4)' : 'var(--bg3)',
-                      color: loading[url] ? 'var(--text3)' : 'var(--text2)',
-                      border:'1px solid var(--border)', borderRadius:'8px',
-                      fontSize:'12px', cursor: loading[url] ? 'wait' : 'pointer'
-                    }}>
-                    {loading[url]
-                      ? <><Loader2 size={12} style={{animation:'spin 0.8s linear infinite'}} /> Scanning...</>
-                      : <><Package size={12} /> Sandbox</>}
-                  </button>
+                  <ActionButton
+                    label="Check" loadingLabel="Checking..." icon={Search} compact
+                    loading={checking[url]} disabled={checking[url]}
+                    variant="secondary" onClick={() => runCheck(url)}
+                  />
+                  <ActionButton
+                    label="Scan" loadingLabel="Scanning..." icon={Package} compact
+                    loading={scanning[url]} disabled={scanning[url]}
+                    variant="secondary" onClick={() => runScan(url)}
+                  />
                 </div>
-                {results[url] && <SandboxCard url={url} result={results[url]} inline />}
+                {results[url] && <UrlResultCard url={url} entry={results[url]} inline />}
               </div>
             ))}
           </div>
@@ -132,8 +140,92 @@ export default function SandboxView({ urls, standalone }) {
   )
 }
 
-function SandboxCard({ url, result: r, inline }) {
-  if (r.status === 'error') return (
+function ActionButton({ label, loadingLabel, icon: Icon, loading, disabled, variant, compact, onClick }) {
+  const primary = variant === 'primary'
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display:'flex', alignItems:'center', gap:'5px', flexShrink:0,
+        padding: compact ? '7px 14px' : '12px 20px',
+        background: disabled
+          ? 'var(--bg4)'
+          : primary ? 'linear-gradient(135deg, #3b82f6, #6366f1)' : 'var(--bg3)',
+        color: primary ? 'white' : (disabled ? 'var(--text3)' : 'var(--text2)'),
+        border: primary ? 'none' : '1px solid var(--border)',
+        borderRadius: compact ? '8px' : '10px',
+        fontSize: compact ? '12px' : '13px', fontWeight: primary ? '600' : '500',
+        cursor: disabled ? 'not-allowed' : 'pointer', transition:'opacity 0.15s',
+      }}>
+      {loading
+        ? <><Loader2 size={compact ? 12 : 14} style={{animation:'spin 0.8s linear infinite'}} /> {loadingLabel}</>
+        : <><Icon size={compact ? 12 : 14} /> {label}</>}
+    </button>
+  )
+}
+
+// Combines the Check verdict and the Scan (URLScan) result into one view.
+// Either can be present alone (Check run without a Scan, or vice versa
+// since Scan always fills in `check` too), or both together.
+function UrlResultCard({ url, entry, inline }) {
+  const { check, scan } = entry
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:'12px'}}>
+      {check && <CheckVerdictCard result={check} />}
+      {scan && <ScanDetailsCard result={scan} inline={inline} />}
+    </div>
+  )
+}
+
+function CheckVerdictCard({ result }) {
+  if (result.error) return (
+    <div style={{display:'flex', alignItems:'center', gap:'6px',
+      padding:'10px 14px', background:'rgba(239,68,68,0.08)',
+      border:'1px solid rgba(239,68,68,0.2)', borderRadius:'8px',
+      fontSize:'12px', color:'#fca5a5'}}>
+      <AlertTriangle size={13} /> {result.error}
+    </div>
+  )
+
+  const v = result.ai_verdict || {}
+  const isTP = v.verdict === 'TP'
+  const typosquat = result.typosquat
+
+  return (
+    <div style={{
+      background: isTP ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)',
+      border: `1px solid ${isTP ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)'}`,
+      borderRadius:'12px', padding:'16px',
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap'}}>
+        <span style={{fontSize:'18px', fontWeight:'800', color: isTP ? '#fca5a5' : '#6ee7b7'}}>
+          {v.verdict}
+        </span>
+        <SeverityBadge severity={v.risk_level} size="sm" />
+        <span style={{fontSize:'12px', color:'var(--text3)'}}>{v.confidence}% confidence</span>
+        {typosquat?.detected && (
+          <span style={{fontSize:'11px', padding:'2px 8px', borderRadius:'4px',
+            background:'rgba(239,68,68,0.15)', color:'#fca5a5', border:'1px solid rgba(239,68,68,0.3)'}}>
+            typosquat of {typosquat.brand} ({typosquat.technique})
+          </span>
+        )}
+      </div>
+      <p style={{fontSize:'12px', color:'var(--text2)', lineHeight:'1.6', marginBottom: v.recommended_action ? '8px' : 0}}>
+        {v.reasoning}
+      </p>
+      {v.recommended_action && (
+        <p style={{fontSize:'12px', color:'var(--text3)'}}>
+          <span style={{color:'var(--text2)', fontWeight:'500'}}>Recommended: </span>{v.recommended_action}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ScanDetailsCard({ result: r, inline }) {
+  if (r.error || r.status === 'error') return (
     <div style={{display:'flex', alignItems:'center', gap:'6px',
       padding:'10px 14px', background:'rgba(239,68,68,0.08)',
       border:'1px solid rgba(239,68,68,0.2)', borderRadius:'8px',
@@ -177,7 +269,7 @@ function SandboxCard({ url, result: r, inline }) {
         </span>
 
         <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-          <span style={{fontSize:'12px', color:'var(--text3)'}}>Risk score</span>
+          <span style={{fontSize:'12px', color:'var(--text3)'}}>URLScan risk score</span>
           <div style={{width:'80px', height:'5px', background:'var(--bg4)', borderRadius:'3px'}}>
             <div style={{
               width:`${Math.min(r.score||0, 100)}%`, height:'100%',
