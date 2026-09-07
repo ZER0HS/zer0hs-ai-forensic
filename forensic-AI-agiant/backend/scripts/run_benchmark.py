@@ -116,25 +116,34 @@ async def main(limit: int | None, markdown_path: str | None):
         outcome = await run_one_case(path)
         elapsed = time.time() - t_case
         correct = outcome["predicted"] == case["verdict"]
+        label = "OK" if correct else ("REVIEW" if outcome["predicted"] == "NEEDS_REVIEW" else "WRONG")
         print(f"predicted={outcome['predicted']} actual={case['verdict']} "
-              f"{'OK' if correct else 'WRONG'} ({elapsed:.1f}s, llm={outcome['used_llm']})")
+              f"{label} ({elapsed:.1f}s, llm={outcome['used_llm']})")
         results.append({**case, **outcome, "correct": correct})
 
     total_time = time.time() - t0
 
-    tp = sum(1 for r in results if r["verdict"] == "TP" and r["predicted"] == "TP")
-    fn = sum(1 for r in results if r["verdict"] == "TP" and r["predicted"] == "FP")
-    tn = sum(1 for r in results if r["verdict"] == "FP" and r["predicted"] == "FP")
-    fp = sum(1 for r in results if r["verdict"] == "FP" and r["predicted"] == "TP")
+    # NEEDS_REVIEW is scored out of the strict TP/FP confusion matrix
+    # entirely — it's neither a hit nor a miss against a binary ground
+    # truth, it's the system correctly declining to guess. Reported
+    # separately below rather than silently counted as wrong.
+    reviewed = [r for r in results if r["predicted"] == "NEEDS_REVIEW"]
+    scored   = [r for r in results if r["predicted"] != "NEEDS_REVIEW"]
 
-    n = len(results)
+    tp = sum(1 for r in scored if r["verdict"] == "TP" and r["predicted"] == "TP")
+    fn = sum(1 for r in scored if r["verdict"] == "TP" and r["predicted"] == "FP")
+    tn = sum(1 for r in scored if r["verdict"] == "FP" and r["predicted"] == "FP")
+    fp = sum(1 for r in scored if r["verdict"] == "FP" and r["predicted"] == "TP")
+
+    n = len(scored)
     accuracy  = (tp + tn) / n * 100 if n else 0
     precision = tp / (tp + fp) * 100 if (tp + fp) else 0
     recall    = tp / (tp + fn) * 100 if (tp + fn) else 0
     f1        = 2 * precision * recall / (precision + recall) if (precision + recall) else 0
 
     print("\n" + "=" * 60)
-    print(f"Cases: {n}   Time: {total_time:.1f}s")
+    print(f"Cases: {len(results)} ({len(reviewed)} flagged NEEDS_REVIEW, "
+          f"scored against {n})   Time: {total_time:.1f}s")
     print(f"Confusion matrix — predicted TP / predicted FP")
     print(f"  actual TP:  {tp:>3}          {fn:>3}")
     print(f"  actual FP:  {fp:>3}          {tn:>3}")
@@ -143,16 +152,22 @@ async def main(limit: int | None, markdown_path: str | None):
     print(f"Recall:    {recall:.1f}%")
     print(f"F1:        {f1:.1f}%")
 
-    wrong = [r for r in results if not r["correct"]]
+    wrong = [r for r in scored if not r["correct"]]
     if wrong:
         print("\nMissed cases:")
         for r in wrong:
             print(f"  {r['filename']}: predicted {r['predicted']}, actual {r['verdict']} ({r['category']})")
+    if reviewed:
+        print("\nFlagged for human review (excluded from the confusion matrix above):")
+        for r in reviewed:
+            print(f"  {r['filename']}: actual {r['verdict']} ({r['category']})")
 
     if markdown_path:
         md = f"""| Metric | Value |
 |---|---|
-| Cases | {n} |
+| Cases | {len(results)} |
+| Flagged NEEDS_REVIEW | {len(reviewed)} |
+| Scored (TP/FP only) | {n} |
 | Accuracy | {accuracy:.1f}% |
 | Precision | {precision:.1f}% |
 | Recall | {recall:.1f}% |

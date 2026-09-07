@@ -9,7 +9,8 @@ export default function VerdictBanner({ verdict, caseId }) {
 
   if (!verdict) return null
 
-  const c       = severityConfig(verdict.risk_level)
+  const isNeedsReview = verdict.verdict === 'NEEDS_REVIEW'
+  const c       = severityConfig(isNeedsReview ? 'needs_review' : verdict.risk_level)
   const isTP    = verdict.verdict === 'TP'
   const factors = verdict.fp_tp_factors || {}
 
@@ -60,27 +61,25 @@ export default function VerdictBanner({ verdict, caseId }) {
             AI Verdict
           </div>
           <div style={{
-            fontSize:      '40px',
+            fontSize:      isNeedsReview ? '24px' : '40px',
             fontWeight:    '800',
             color:         c.color,
             letterSpacing: '-0.02em',
             lineHeight:    1
           }}>
-            {verdict.verdict}
+            {isNeedsReview ? 'REVIEW' : verdict.verdict}
           </div>
           <div style={{
             marginTop:    '8px',
             fontSize:     '11px',
             padding:      '3px 10px',
-            background:   isTP
-              ? 'rgba(239,68,68,0.2)'
-              : 'rgba(16,185,129,0.2)',
-            color:        isTP ? '#fca5a5' : '#6ee7b7',
+            background:   isNeedsReview ? c.badge : (isTP ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'),
+            color:        isNeedsReview ? c.color : (isTP ? '#fca5a5' : '#6ee7b7'),
             borderRadius: '20px',
             display:      'inline-block',
             fontWeight:   '500'
           }}>
-            {isTP ? 'True Positive' : 'False Positive'}
+            {isNeedsReview ? 'Needs Human Review' : (isTP ? 'True Positive' : 'False Positive')}
           </div>
         </div>
 
@@ -101,7 +100,7 @@ export default function VerdictBanner({ verdict, caseId }) {
               letterSpacing: '0.08em',
               minWidth:      '80px'
             }}>
-              {verdict.risk_level} risk
+              {isNeedsReview ? 'uncertain' : `${verdict.risk_level} risk`}
             </span>
 
             {/* Confidence bar */}
@@ -137,10 +136,28 @@ export default function VerdictBanner({ verdict, caseId }) {
             fontSize:     '13px',
             color:        'var(--text2)',
             lineHeight:   '1.75',
-            marginBottom: factors.deciding_factor ? '12px' : 0
+            marginBottom: (factors.deciding_factor || verdict.review_reason) ? '12px' : 0
           }}>
             {verdict.case_summary || verdict.reasoning}
           </p>
+
+          {/* Why this needs a human — the full explanation, not just a badge */}
+          {verdict.review_reason && (
+            <div style={{
+              padding:      '10px 14px',
+              background:   'rgba(168,85,247,0.08)',
+              border:       '1px solid rgba(168,85,247,0.25)',
+              borderRadius: '8px',
+              marginBottom: '12px',
+            }}>
+              <p style={{fontSize:'11px', color: c.color, fontWeight:'600', marginBottom:'4px'}}>
+                Why this needs a human:
+              </p>
+              <p style={{fontSize:'12px', color:'var(--text2)', lineHeight:'1.6'}}>
+                {verdict.review_reason}
+              </p>
+            </div>
+          )}
 
           {/* Deciding factor callout */}
           {factors.deciding_factor && (

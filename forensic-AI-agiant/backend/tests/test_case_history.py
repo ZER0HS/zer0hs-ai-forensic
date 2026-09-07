@@ -48,6 +48,25 @@ def test_verdict_distribution_counts_by_verdict():
     feedback.save_analysis({"case_verdict": {"verdict": "TP", "confidence": 80, "risk_level": "high"}})
     feedback.save_analysis({"case_verdict": {"verdict": "FP", "confidence": 90, "risk_level": "clean"}})
     feedback.save_analysis({"case_verdict": {"verdict": "FP", "confidence": 90, "risk_level": "clean"}})
+    feedback.save_analysis({"case_verdict": {"verdict": "NEEDS_REVIEW", "confidence": 50, "risk_level": "medium"}})
 
     dist = feedback.get_verdict_distribution()
-    assert dist == {"TP": 1, "FP": 2, "unknown": 0}
+    assert dist == {"TP": 1, "FP": 2, "NEEDS_REVIEW": 1, "unknown": 0}
+
+
+def test_save_analysis_flags_needs_review_cases():
+    case_id = feedback.save_analysis({
+        "case_verdict": {
+            "verdict": "NEEDS_REVIEW", "confidence": 50, "risk_level": "medium",
+            "review_reason": "Confidence is in the uncertain band.",
+        }
+    })
+    case = feedback.get_case(case_id)
+    assert case["needs_review"] is True
+    assert case["review_reason"] == "Confidence is in the uncertain band."
+
+
+def test_save_analysis_does_not_flag_ordinary_verdicts():
+    case_id = feedback.save_analysis({"case_verdict": {"verdict": "TP", "confidence": 90, "risk_level": "high"}})
+    case = feedback.get_case(case_id)
+    assert case["needs_review"] is False

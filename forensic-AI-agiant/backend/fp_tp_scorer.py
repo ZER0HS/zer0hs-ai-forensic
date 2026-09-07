@@ -194,6 +194,12 @@ MANDATORY RULES:
 
     result = await ask_llm_json(prompt, ANALYST_SYSTEM, CaseVerdict, max_tokens=2000)
 
+    # Captured before any of the adjustments below can inflate or deflate
+    # it — NEEDS_REVIEW is about how sure the model itself actually was,
+    # not a post-processed number.
+    original_verdict    = result.verdict
+    original_confidence = result.confidence
+
     # ── Sanity check — no evidence = cannot be TP ─────────────────────────
     has_threats   = any(
         r.get("abuse_score", 0) >= 25 for r in threat_results
@@ -202,24 +208,29 @@ MANDATORY RULES:
     has_rule_hits = len(
         (rule_findings or {}).get("hard_tp_indicators", [])
     ) > 0
+    has_fp_rule_hits = len(
+        (rule_findings or {}).get("hard_fp_indicators", [])
+    ) > 0
     has_patterns  = len(
         (patterns or {}).get("matched_attack_patterns", [])
     ) > 0
 
-    if (not has_threats and
-        not has_anomalies and
-        not has_rule_hits and
-        not has_patterns):
-        if result.verdict == "TP":
-            result.verdict    = "FP"
-            result.confidence = max(result.confidence, 80)
-            result.risk_level = "clean"
-            result.reasoning  = (
-                "[AUTO-CORRECTED] No threat intelligence hits, no forensic "
-                "anomalies, no rule engine hits, and no pattern matches. "
-                "Insufficient evidence for TP verdict. "
-                + result.reasoning
-            )
+    no_evidence_anywhere = (
+        not has_threats and not has_anomalies and
+        not has_rule_hits and not has_patterns
+    )
+    auto_corrected = no_evidence_anywhere and result.verdict == "TP"
+
+    if no_evidence_anywhere and result.verdict == "TP":
+        result.verdict    = "FP"
+        result.confidence = max(result.confidence, 80)
+        result.risk_level = "clean"
+        result.reasoning  = (
+            "[AUTO-CORRECTED] No threat intelligence hits, no forensic "
+            "anomalies, no rule engine hits, and no pattern matches. "
+            "Insufficient evidence for TP verdict. "
+            + result.reasoning
+        )
 
     # ── Confidence floor based on evidence strength ───────────────────────
     if result.verdict == "TP":
@@ -232,6 +243,56 @@ MANDATORY RULES:
 
     if result.verdict == "FP":
         result.iocs = []  # never have IOCs in a FP
+
+    # ── NEEDS_REVIEW — a genuinely uncertain call shouldn't be dressed up
+    # as a confident TP or FP. Skipped entirely when the case was already
+    # auto-corrected above: "zero evidence anywhere" is itself a
+    # confident, correct FP call, not an ambiguous one. Uses the model's
+    # *original* verdict/confidence, from before the adjustments above,
+    # since those can push confidence up in a way that would mask real
+    # uncertainty. ────────────────────────────────────────────────────
+    review_reasons = []
+
+    if not auto_corrected:
+        if 40 <= original_confidence <= 60:
+            review_reasons.append(
+                f"Model confidence ({original_confidence}%) is in the band "
+                "the skill file itself calls \"suspicious but under-"
+                "evidenced\" — not confident enough to call this a settled "
+                "TP or FP."
+            )
+
+        if original_verdict == "FP" and has_rule_hits:
+            top_hits = ", ".join((rule_findings or {}).get("hard_tp_indicators", [])[:2])
+            review_reasons.append(
+                f"The rule engine found hard TP indicators ({top_hits}), but "
+                "the model's verdict was FP. Check whether the rule engine's "
+                "finding is a false alarm or the model missed it."
+            )
+        elif original_verdict == "TP" and has_fp_rule_hits and not (has_threats or has_patterns):
+            review_reasons.append(
+                "The rule engine found only clean/benign indicators, but the "
+                "model's verdict was TP based on textual reasoning alone. "
+                "Check whether the model over-read ordinary language as a "
+                "threat."
+            )
+
+        weak_signal_count = sum([has_threats, has_rule_hits, has_patterns, has_anomalies])
+        if (not review_reasons and original_verdict == "TP" and
+                weak_signal_count <= 1 and original_confidence < 70):
+            review_reasons.append(
+                "Only one weak, uncorroborated signal supports this TP call, "
+                "and nothing else backs it up in either direction."
+            )
+
+    if review_reasons:
+        result.verdict       = "NEEDS_REVIEW"
+        result.confidence    = original_confidence
+        result.review_reason = " ".join(review_reasons)
+        result.recommended_actions = [
+            f"Needs human review — the model leaned {original_verdict} but "
+            "wasn't confident enough to finalize automatically."
+        ] + result.recommended_actions
 
     return result.model_dump()
 

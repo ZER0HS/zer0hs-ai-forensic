@@ -97,12 +97,16 @@ def test_legit_urgent_business_email_is_not_a_false_positive(client, fixtures_di
 def test_ambiguous_case_does_call_the_llm_and_uses_its_verdict(client, respx_mock, monkeypatch):
     """No rule-engine override fires here (a single mid-score IP, nothing
     else) — this is the genuinely-ambiguous middle the LLM path exists
-    for, so the two LLM calls (forensic + scoring) should both happen."""
+    for, so the two LLM calls (forensic + scoring) should both happen.
+    Confidence is set high enough (85%) that this doesn't land in the
+    NEEDS_REVIEW band — that behavior has its own dedicated tests in
+    test_fp_tp_scorer.py; this test is specifically about the short-
+    circuit-vs-LLM-path routing and the LLM's verdict being used as-is."""
     _mock_high_risk_abuseipdb(respx_mock, monkeypatch, score=30)  # mid-range: too
     # low to trip the typosquat+high-IP TP override (needs >=75), too high
     # to trip the all-clean FP override (needs <10) — genuinely ambiguous.
     verdict_json = {
-        "verdict": "TP", "confidence": 65, "risk_level": "medium",
+        "verdict": "TP", "confidence": 85, "risk_level": "medium",
         "case_summary": "Borderline case.", "reasoning": "moderate signal",
         "fp_tp_factors": {"factors_for_tp": ["mid-score IP"], "factors_for_fp": [], "deciding_factor": "IP score"},
         "recommended_actions": ["Monitor"], "mitre_techniques": [], "iocs": [],
@@ -118,7 +122,7 @@ def test_ambiguous_case_does_call_the_llm_and_uses_its_verdict(client, respx_moc
     assert r.status_code == 200
     assert route.call_count == 2
     assert r.json()["case_verdict"]["verdict"] == "TP"
-    assert r.json()["case_verdict"]["confidence"] == 65
+    assert r.json()["case_verdict"]["confidence"] == 85
 
 
 @pytest.mark.respx(base_url="http://localhost:11434", assert_all_called=False)

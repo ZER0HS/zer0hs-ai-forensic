@@ -10,13 +10,17 @@ def save_analysis(case_data: dict) -> str:
     """Save analysis for human review"""
     case_id = f"CASE-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{str(uuid.uuid4())[:6].upper()}"
     
+    verdict = case_data.get("case_verdict", {})
+
     # Never save raw evidence text — only metadata and results
     safe_data = {
         "case_id":         case_id,
         "timestamp":       datetime.now(timezone.utc).isoformat(),
-        "llm_verdict":     case_data.get("case_verdict", {}).get("verdict"),
-        "llm_confidence":  case_data.get("case_verdict", {}).get("confidence"),
-        "llm_risk_level":  case_data.get("case_verdict", {}).get("risk_level"),
+        "llm_verdict":     verdict.get("verdict"),
+        "llm_confidence":  verdict.get("confidence"),
+        "llm_risk_level":  verdict.get("risk_level"),
+        "needs_review":    verdict.get("verdict") == "NEEDS_REVIEW",
+        "review_reason":   verdict.get("review_reason"),
         "rule_score":      case_data.get("rule_findings", {}).get("rule_score", 0),
         "indicators":      case_data.get("indicators", {}),
         "threat_results":  case_data.get("threat_results", []),
@@ -70,16 +74,17 @@ def get_case(case_id: str) -> dict | None:
 
 
 def get_verdict_distribution() -> dict:
-    """TP/FP counts across every saved case (not just human-reviewed ones)
-    — a simple chart-ready summary for the Accuracy dashboard."""
-    counts = {"TP": 0, "FP": 0, "unknown": 0}
+    """TP/FP/NEEDS_REVIEW counts across every saved case (not just
+    human-reviewed ones) — a simple chart-ready summary for the Accuracy
+    dashboard."""
+    counts = {"TP": 0, "FP": 0, "NEEDS_REVIEW": 0, "unknown": 0}
     for path in FEEDBACK_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text())
         except json.JSONDecodeError:
             continue
         verdict = data.get("llm_verdict")
-        counts[verdict if verdict in ("TP", "FP") else "unknown"] += 1
+        counts[verdict if verdict in counts else "unknown"] += 1
     return counts
 
 

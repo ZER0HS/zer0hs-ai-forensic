@@ -21,6 +21,10 @@ from pydantic import BaseModel, Field, field_validator
 
 RiskLevel = Literal["critical", "high", "medium", "low", "clean"]
 Verdict = Literal["TP", "FP"]
+# CaseVerdict specifically can also land in a third state — see its own
+# verdict field below for why score_single (a single indicator, not a
+# full case) doesn't get this third option.
+CaseVerdictValue = Literal["TP", "FP", "NEEDS_REVIEW"]
 
 
 def _clamp_int(v, lo: int, hi: int, default: int) -> int:
@@ -153,7 +157,7 @@ class SeverityBreakdown(BaseModel):
 
 
 class CaseVerdict(BaseModel):
-    verdict: Verdict = "FP"
+    verdict: CaseVerdictValue = "FP"
     confidence: int = 50
     risk_level: RiskLevel = "low"
     case_summary: str = "Analysis complete"
@@ -164,12 +168,17 @@ class CaseVerdict(BaseModel):
     iocs: List[str] = Field(default_factory=list)
     threat_actor_profile: Optional[str] = None
     severity_breakdown: SeverityBreakdown = Field(default_factory=SeverityBreakdown)
+    # Set only when verdict is NEEDS_REVIEW (see fp_tp_scorer.score_case's
+    # post-processing, not the LLM itself — this is a deterministic check
+    # on confidence/evidence, not something the model decides on its own).
+    # Explains exactly why neither TP nor FP won convincingly.
+    review_reason: Optional[str] = None
 
     @field_validator("verdict", mode="before")
     @classmethod
     def _normalize_verdict(cls, v):
-        v = str(v).strip().upper()
-        return v if v in ("TP", "FP") else "FP"
+        v = str(v).strip().upper().replace(" ", "_").replace("-", "_")
+        return v if v in ("TP", "FP", "NEEDS_REVIEW") else "FP"
 
     @field_validator("risk_level", mode="before")
     @classmethod

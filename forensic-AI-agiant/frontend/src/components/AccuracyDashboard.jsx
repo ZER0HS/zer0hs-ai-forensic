@@ -5,6 +5,7 @@ import { apiClient } from '../api'
 import { EmptyState, ErrorBanner, PageHeader, SkeletonList } from './CaseHistory'
 import Card from './ui/Card'
 import StatTile from './ui/StatTile'
+import { severityConfig } from './ui/severity'
 
 const CHART_TOOLTIP_STYLE = {
   background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -28,12 +29,13 @@ export default function AccuracyDashboard() {
   if (error) return <ErrorBanner message={error} />
   if (stats === null) return <SkeletonList rows={2} />
 
-  const dist = stats.verdict_distribution || { TP: 0, FP: 0, unknown: 0 }
-  const totalAnalyzed = dist.TP + dist.FP + dist.unknown
+  const dist = stats.verdict_distribution || { TP: 0, FP: 0, NEEDS_REVIEW: 0, unknown: 0 }
+  const totalAnalyzed = dist.TP + dist.FP + (dist.NEEDS_REVIEW || 0) + (dist.unknown || 0)
 
   const distData = [
     { name: 'True Positive', value: dist.TP, color: 'var(--red)' },
     { name: 'False Positive', value: dist.FP, color: 'var(--green)' },
+    { name: 'Needs Review', value: dist.NEEDS_REVIEW || 0, color: severityConfig('needs_review').accent },
   ].filter(d => d.value > 0)
 
   return (
