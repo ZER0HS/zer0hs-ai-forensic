@@ -174,7 +174,7 @@ async def analyze(
         )
 
         # Step 3 — deterministic rule engine (ground truth — LLM can't override it)
-        rule_findings = run_rules(raw_text, indicators, threat_results, hash_results)
+        rule_findings = run_rules(raw_text, indicators, threat_results, hash_results, attachments)
 
         # Step 4 — RAG pattern matching
         patterns = get_relevant_patterns(raw_text, indicators)

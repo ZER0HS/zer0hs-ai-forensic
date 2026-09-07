@@ -107,6 +107,25 @@ def test_malicious_attachment_hash_alone_is_definite_tp():
     assert any("malicious" in i.lower() for i in findings["hard_tp_indicators"])
 
 
+def test_real_mime_attachment_with_dangerous_extension_plus_high_ip_is_definite_tp():
+    """Found while running the accuracy benchmark: check_dangerous_attachments()
+    only ever scanned the raw body text for a filename mention (e.g. "see
+    attached invoice.exe" typed in the body) — a real MIME-attached .exe,
+    which never appears as text in the body at all, was invisible to it,
+    so this exact case fell through to the LLM path even with a
+    confirmed-malicious IP alongside it. run_rules() now also checks the
+    actual parsed attachment list, not just text mentions."""
+    findings = run_rules(
+        text="please install the attached update immediately",
+        indicators={"ips": ["1.2.3.4"], "domains": []},
+        threat_results=[{"type": "ip", "value": "1.2.3.4", "abuse_score": 95}],
+        hash_results=[],
+        attachments=[{"filename": "Invoice_September.exe"}],
+    )
+    assert findings["verdict_override"] == "TP"
+    assert "Invoice_September.exe" in findings["dangerous_files"]
+
+
 def test_ambiguous_case_has_no_override():
     """A single weak signal shouldn't be enough for either definite
     override — this is the "genuinely ambiguous middle" the LLM path

@@ -258,12 +258,14 @@ def check_dangerous_attachments(text: str) -> list:
     return found
 
 def run_rules(text: str, indicators: dict,
-              threat_results: list, hash_results: list = None) -> dict:
+              threat_results: list, hash_results: list = None,
+              attachments: list = None) -> dict:
     """
     Run all deterministic rules and return structured findings.
     This is ground truth — LLM cannot override these results.
     """
     hash_results = hash_results or []
+    attachments  = attachments or []
     findings  = {
         "rule_score":           0,
         "hard_tp_indicators":   [],
@@ -298,12 +300,25 @@ def run_rules(text: str, indicators: dict,
                 f"impersonates '{ts['brand']}' ({ts['technique']})"
             )
     
-    # 3. Dangerous file attachments
+    # 3. Dangerous file attachments — both a literal mention in the body
+    #    text ("see attached invoice.exe") and, more importantly, an
+    #    actual MIME attachment with a dangerous extension. These used to
+    #    be checked separately: header_parser.py already flagged a real
+    #    dangerous attachment as a header-level anomaly, but that never
+    #    fed into this function, so a genuinely attached .exe (as opposed
+    #    to one merely mentioned in the text) was invisible to the rule
+    #    engine's hard-TP/override logic and fell through to the LLM path
+    #    even with a confirmed-malicious IP alongside it.
     dangerous = check_dangerous_attachments(text)
-    if dangerous:
-        findings["dangerous_files"] = dangerous
+    real_attachments = [
+        a.get("filename", "") for a in attachments
+        if any(a.get("filename", "").lower().endswith(ext) for ext in DANGEROUS_EXTENSIONS)
+    ]
+    all_dangerous = list(dict.fromkeys(dangerous + real_attachments))
+    if all_dangerous:
+        findings["dangerous_files"] = all_dangerous
         findings["hard_tp_indicators"].append(
-            f"Dangerous file references: {', '.join(dangerous)}"
+            f"Dangerous file references: {', '.join(all_dangerous)}"
         )
     
     # 4. Attachment hash checks (VirusTotal) — a confirmed-malicious hash is
