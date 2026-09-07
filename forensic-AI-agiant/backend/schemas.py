@@ -74,6 +74,18 @@ class TimelineEvent(BaseModel):
     actors: str = ""
     anomaly: bool = False
 
+    @field_validator("time", "event", "actors", mode="before")
+    @classmethod
+    def _coerce_str(cls, v):
+        # Seen for real (not a synthetic test) while running the accuracy
+        # benchmark against Ollama: the model returned "actors" as
+        # ["IT Helpdesk <...>"] instead of a plain string when an email
+        # involved a distinct sender vs. reply-to. Cosmetic — join it
+        # rather than burning a re-prompt over it.
+        if isinstance(v, list):
+            return ", ".join(str(x) for x in v)
+        return v
+
     @field_validator("anomaly", mode="before")
     @classmethod
     def _coerce_bool(cls, v):

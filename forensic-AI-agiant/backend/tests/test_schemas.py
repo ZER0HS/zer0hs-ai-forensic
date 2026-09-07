@@ -4,7 +4,7 @@ model mistakes (wrong case, out-of-range numbers, a lone string instead of
 a list) should be silently corrected, not treated as a schema failure that
 burns the one-shot re-prompt.
 """
-from schemas import Anomaly, CaseVerdict, Highlight, SingleIndicatorVerdict
+from schemas import Anomaly, CaseVerdict, Highlight, SingleIndicatorVerdict, TimelineEvent
 
 
 def test_verdict_is_normalized_to_uppercase():
@@ -51,3 +51,11 @@ def test_highlight_offsets_are_clamped_non_negative():
     h = Highlight.model_validate({"text": "abc", "start": -5, "end": 99999})
     assert h.start == 0
     assert h.end == 10_000  # clamp ceiling, further clamped to len() by agent.py
+
+
+def test_timeline_actors_list_is_joined_into_a_string():
+    """A real (not synthetic) response from Ollama during the accuracy
+    benchmark returned actors as ["IT Helpdesk <...>"] instead of a plain
+    string. Join it instead of failing schema validation over it."""
+    e = TimelineEvent.model_validate({"actors": ["IT Helpdesk", "billing@example.com"]})
+    assert e.actors == "IT Helpdesk, billing@example.com"
