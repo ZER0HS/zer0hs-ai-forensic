@@ -87,11 +87,12 @@ async def run_one_case(path: Path) -> dict:
     else:
         # Imported lazily so a benchmark run against a provider that isn't
         # configured fails on the specific case, not at import time.
-        from agent import run_analysis
-        from fp_tp_scorer import score_case
+        from combined_analysis import run_combined_analysis
 
-        forensic = await run_analysis(raw_text, rule_findings, patterns)
-        verdict = await score_case(raw_text, indicators, threat_results, forensic, rule_findings, patterns)
+        combined = await run_combined_analysis(
+            raw_text, indicators, threat_results, rule_findings, patterns, eml_data
+        )
+        verdict = combined["verdict"]
         used_llm = True
 
     return {

@@ -3,10 +3,14 @@
 FastAPI service that parses a suspicious email/log, extracts indicators,
 checks them against threat intel, runs a deterministic rule engine, and
 asks an LLM (local Ollama by default, or Claude) to produce a forensic
-write-up and a TP/FP verdict. The rule engine is ground truth: when it
-reaches a maximally-confident verdict, the LLM is skipped entirely; when it
-isn't confident, the LLM's output is still validated against the rule
-engine's hard findings before being trusted.
+write-up and a verdict — TP, FP, or needs review — in a single call. The
+rule engine is ground truth: when it reaches a maximally-confident
+verdict (including a match against something a human has confirmed
+before, see "Persistent memory" below), the LLM is skipped entirely; when
+it isn't confident, the LLM's output is still validated against the rule
+engine's hard findings before being trusted, and a genuinely uncertain
+call is flagged for human review instead of forced into a confident TP
+or FP it hasn't earned.
 
 ## Setup
 
@@ -78,10 +82,23 @@ claim.
 ## Architecture notes
 
 - `rule_engine.py` is the only thing allowed to force a verdict. `main.py`
-  skips both LLM calls entirely when the rule engine already reached a
+  skips the LLM call entirely when the rule engine already reached a
   `verdict_override` (`shortcircuit_forensic`/`shortcircuit_verdict`); when
-  it hasn't, the LLM path runs and its output is validated against
-  `schemas.py` before use.
+  it hasn't, `combined_analysis.run_combined_analysis()` runs and its
+  output is validated against `schemas.py` before use.
+- `combined_analysis.py` asks for the forensic write-up and the TP/FP/
+  needs-review verdict in one LLM call and one schema
+  (`schemas.CombinedAnalysis`), not two sequential calls — see that
+  file's docstring for why, and `agent.run_analysis()` /
+  `fp_tp_scorer.score_case()` for the two-call version this replaced on
+  the `/analyze` path (still used directly by tests, and by
+  `fp_tp_scorer.score_single()` for the single-indicator `/threat-check`
+  and Sandbox Check paths, which are a different, smaller problem).
+- `fp_tp_scorer.finalize_case_verdict()` is the one place the zero-
+  evidence auto-correct, the confidence floor, and the needs-review
+  triggers live — both `score_case()` and `combined_analysis.py` call it,
+  so the two call paths can't quietly drift apart in how they finalize a
+  verdict.
 - Every LLM prompt loads `skills/forensic_analysis_skill.md` as its system
   prompt (via `skill_loader.py`) and wraps untrusted evidence text in
   `<<<EVIDENCE_START>>>`/`<<<EVIDENCE_END>>>` markers with an explicit
@@ -89,3 +106,15 @@ claim.
 - `llm_client.ask_llm_json()` validates every LLM response against a
   Pydantic schema, re-prompts once on failure, and only falls back to the
   schema's own explicit defaults after a second failure.
+- `confirmed_indicators.py` is a permanent memory of indicators a human
+  has confirmed via the feedback loop, checked before threat intel or the
+  LLM are called at all — distinct from `threat_intel.py`'s 10-minute API
+  cache, which is a speed optimization, not memory. `scripts/
+  suggest_rules.py` scans confirmed feedback for patterns worth adding to
+  `TYPOSQUAT_BRANDS`/`PHISHING_KEYWORDS` and prints them for a human to
+  review; nothing ever edits `rule_engine.py`'s lists automatically.
+- Sandbox has two speeds: `/sandbox/check` (threat intel plus the
+  typosquat check on a URL's domain, seconds) and `/sandbox/scan` (the
+  URLScan.io submission, 15-45s) — Scan always includes the same verdict
+  Check would produce, computed concurrently with the URLScan wait so
+  combining them costs nothing extra.

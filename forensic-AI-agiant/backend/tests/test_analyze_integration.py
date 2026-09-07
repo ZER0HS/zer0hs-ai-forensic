@@ -97,30 +97,32 @@ def test_legit_urgent_business_email_is_not_a_false_positive(client, fixtures_di
 def test_ambiguous_case_does_call_the_llm_and_uses_its_verdict(client, respx_mock, monkeypatch):
     """No rule-engine override fires here (a single mid-score IP, nothing
     else) — this is the genuinely-ambiguous middle the LLM path exists
-    for, so the two LLM calls (forensic + scoring) should both happen.
-    Confidence is set high enough (85%) that this doesn't land in the
-    NEEDS_REVIEW band — that behavior has its own dedicated tests in
-    test_fp_tp_scorer.py; this test is specifically about the short-
-    circuit-vs-LLM-path routing and the LLM's verdict being used as-is."""
+    for, so it should call the LLM exactly once (the forensic write-up
+    and the verdict are now one combined call, not two sequential ones —
+    see combined_analysis.py) and use its verdict as-is. Confidence is
+    set high enough (85%) that this doesn't land in the NEEDS_REVIEW
+    band — that behavior has its own dedicated tests in
+    test_fp_tp_scorer.py."""
     _mock_high_risk_abuseipdb(respx_mock, monkeypatch, score=30)  # mid-range: too
     # low to trip the typosquat+high-IP TP override (needs >=75), too high
     # to trip the all-clean FP override (needs <10) — genuinely ambiguous.
-    verdict_json = {
-        "verdict": "TP", "confidence": 85, "risk_level": "medium",
-        "case_summary": "Borderline case.", "reasoning": "moderate signal",
-        "fp_tp_factors": {"factors_for_tp": ["mid-score IP"], "factors_for_fp": [], "deciding_factor": "IP score"},
-        "recommended_actions": ["Monitor"], "mitre_techniques": [], "iocs": [],
-        "threat_actor_profile": None,
-        "severity_breakdown": {"indicator_risk": 30, "behavioral_risk": 0, "contextual_risk": 0},
+    combined_json = {
+        "forensic": FORENSIC_JSON,
+        "verdict": {
+            "verdict": "TP", "confidence": 85, "risk_level": "medium",
+            "case_summary": "Borderline case.", "reasoning": "moderate signal",
+            "fp_tp_factors": {"factors_for_tp": ["mid-score IP"], "factors_for_fp": [], "deciding_factor": "IP score"},
+            "recommended_actions": ["Monitor"], "mitre_techniques": [], "iocs": [],
+            "threat_actor_profile": None,
+            "severity_breakdown": {"indicator_risk": 30, "behavioral_risk": 0, "contextual_risk": 0},
+        },
     }
-    route = respx_mock.post("/api/generate").mock(
-        side_effect=[_ollama_response(FORENSIC_JSON), _ollama_response(verdict_json)]
-    )
+    route = respx_mock.post("/api/generate").mock(return_value=_ollama_response(combined_json))
 
     r = client.post("/analyze", data={"text": "please review this document, contact 9.9.9.9 for access"})
 
     assert r.status_code == 200
-    assert route.call_count == 2
+    assert route.call_count == 1
     assert r.json()["case_verdict"]["verdict"] == "TP"
     assert r.json()["case_verdict"]["confidence"] == 85
 

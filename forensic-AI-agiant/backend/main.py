@@ -75,10 +75,10 @@ async def add_security_headers(request: Request, call_next):
 
 # ── Import modules AFTER app is created ───────────────────────────────────
 import confirmed_indicators
-from agent         import run_analysis
+from combined_analysis import run_combined_analysis
 from parser        import extract_text, ZipGuardError
 from threat_intel  import check_indicator, check_all_indicators
-from fp_tp_scorer  import score_case, score_single
+from fp_tp_scorer  import score_single
 from extractor     import extract_domain_from_url, extract_indicators
 from sandbox       import sandbox_url, check_all_hashes
 from rule_engine   import check_typosquatting, run_rules, shortcircuit_forensic, shortcircuit_verdict
@@ -233,12 +233,15 @@ async def analyze(
             forensic = shortcircuit_forensic(raw_text, rule_findings)
             verdict  = shortcircuit_verdict(rule_findings)
         else:
-            # Step 5 — LLM forensic analysis
-            forensic = await run_analysis(raw_text, rule_findings, patterns)
-            # Step 6 — unified FP/TP verdict
-            verdict = await score_case(
-                raw_text, indicators, threat_results, forensic, rule_findings, patterns
+            # Steps 5+6 — one LLM call for both the forensic write-up and
+            # the verdict, instead of two sequential ones. See
+            # combined_analysis.py for why this replaced the old
+            # run_analysis() + score_case() pair on this path.
+            combined  = await run_combined_analysis(
+                raw_text, indicators, threat_results, rule_findings, patterns, eml_data
             )
+            forensic = combined["forensic"]
+            verdict  = combined["verdict"]
 
         # Build result
         result = {

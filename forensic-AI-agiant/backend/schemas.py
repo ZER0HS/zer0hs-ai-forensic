@@ -197,6 +197,18 @@ class CaseVerdict(BaseModel):
         return _as_str_list(v)
 
 
+# ── Combined analysis (combined_analysis.py) ────────────────────────────────
+# One LLM call asking for both the forensic write-up and the TP/FP verdict
+# at once, instead of two sequential calls. Nests the two existing models
+# rather than flattening their fields, so every validator above (offset
+# clamping, verdict normalization, list coercion, ...) applies for free —
+# this schema adds no new validation logic of its own.
+
+class CombinedAnalysis(BaseModel):
+    forensic: ForensicAnalysis = Field(default_factory=ForensicAnalysis)
+    verdict:  CaseVerdict      = Field(default_factory=CaseVerdict)
+
+
 # ── Single-indicator verdict (fp_tp_scorer.py: score_single) ────────────────
 
 class SingleIndicatorVerdict(BaseModel):

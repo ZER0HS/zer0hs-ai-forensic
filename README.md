@@ -27,33 +27,49 @@ branch in the middle: when the rule engine already has enough to reach a
 confident verdict on its own, it returns immediately and the LLM is never
 called at all. That's both faster and removes any chance of a
 manipulated model response overriding a case that was never ambiguous in
-the first place.
+the first place. For the cases that are genuinely ambiguous, one LLM call
+produces both the forensic write-up and the verdict together, and that
+verdict can land on a third outcome, needs review, instead of being
+forced into a confident TP or FP it hasn't earned.
 
 ```mermaid
 flowchart TD
     A["Upload: .eml / .txt / .log / .zip / pasted text"] --> B["Parse headers, SPF/DKIM/DMARC, attachments"]
     B --> C["Extract indicators: IPs, domains, URLs, emails"]
-    C --> D["Threat intel: AbuseIPDB + VirusTotal, in parallel"]
+    C --> Z{"Already confirmed by a human before?"}
+    Z -->|"yes"| F
+    Z -->|"no"| D["Threat intel: AbuseIPDB + VirusTotal, in parallel"]
     C --> E["Attachment hashes: VirusTotal, in parallel"]
     D --> F["Deterministic rule engine"]
     E --> F
     F --> G{"Rule engine confident?"}
-    G -->|"yes - typosquat + malicious IP, malicious hash, etc."| H["Short-circuit: return the rule engine's verdict directly"]
-    G -->|"no - genuinely ambiguous"| I["LLM pass 1: forensic write-up (entities, timeline, cited anomalies)"]
-    I --> J["LLM pass 2: TP/FP verdict, MITRE mapping, recommended actions"]
-    J --> K["Schema validation + evidence sanity check"]
+    G -->|"yes - typosquat + malicious IP, malicious hash, confirmed before, etc."| H["Short-circuit: return the rule engine's verdict directly"]
+    G -->|"no - genuinely ambiguous"| I["One LLM call: forensic write-up + TP/FP/needs-review verdict together"]
+    I --> K["Schema validation + evidence sanity check"]
     K --> L["Save case (metadata and verdict only, never raw evidence text)"]
     H --> L
 ```
 
-Both LLM passes load the same methodology file
-(`backend/skills/forensic_analysis_skill.md`) instead of each keeping its
-own separate prompt, and both wrap the evidence text in explicit
-delimiters with an instruction to treat anything instruction-like inside
-it as a red flag, not a command. The email being analyzed is the one
-input in this whole system an attacker fully controls, so it's treated
-that way everywhere it touches the model. `THREAT_MODEL.md` covers this
-and the rest of the design reasoning in more detail.
+The LLM call loads a single methodology file
+(`backend/skills/forensic_analysis_skill.md`) instead of the forensic
+write-up and the verdict each keeping their own separate prompt, and
+wraps the evidence text in explicit delimiters with an instruction to
+treat anything instruction-like inside it as a red flag, not a command.
+The email being analyzed is the one input in this whole system an
+attacker fully controls, so it's treated that way everywhere it touches
+the model. `THREAT_MODEL.md` covers this and the rest of the design
+reasoning in more detail.
+
+Two things worth calling out in that diagram specifically. The confirmed-
+indicator check happens before threat intel is even queried: once a
+human has confirmed a specific IP or domain through the feedback loop,
+seeing it again skips both the API call and the LLM call entirely,
+permanently, not just for ten minutes like the ordinary threat-intel
+cache. And "needs review" is a real third outcome, not a fallback label.
+It triggers on the model's own uncertain confidence band, or on the rule
+engine and the model actively disagreeing, and it comes with an
+explanation of what's conflicting rather than a guess dressed up as a
+verdict.
 
 ## What gets checked
 
@@ -64,7 +80,7 @@ and the rest of the design reasoning in more detail.
 | Dangerous attachment extensions | Executable or script file types (`.exe`, `.scr`, `.ps1`, and others) commonly used to deliver malware |
 | Attachment hash reputation | A VirusTotal lookup on the actual file content, independent of filename or extension |
 | IP and domain reputation | AbuseIPDB and VirusTotal scores on every extracted indicator |
-| URL sandboxing | A live behavioral scan through URLScan.io: screenshot, redirect chain, malicious verdict |
+| URL sandboxing | Two speeds: a fast Check (threat intel plus the typosquat check, seconds) and an opt-in Scan through URLScan.io (screenshot, redirect chain, 15-45s) that shows the same verdict alongside the screenshot instead of a disconnected raw score |
 | Urgency and social-engineering language | Keyword and pattern matching in English and Arabic |
 | Prompt-injection resistance | Untrusted evidence text is delimited, and the model is told to treat anything instruction-like inside it as a red flag rather than follow it |
 
@@ -104,26 +120,35 @@ number rather than a claim about real-world accuracy at scale.
 
 | Metric | Value |
 |---|---|
-| Cases | 41 |
-| Accuracy | 95.1% |
-| Precision | 90.9% |
-| Recall | 100.0% |
-| F1 | 95.2% |
-| True positives | 20 |
-| False positives | 2 |
+| Cases | 41 (2 flagged needs review, scored separately below) |
+| Accuracy | 97.4% |
+| Precision | 100.0% |
+| Recall | 95.0% |
+| F1 | 97.4% |
+| True positives | 19 |
+| False positives | 0 |
 | True negatives | 19 |
-| False negatives | 0 |
+| False negatives | 1 |
+| Total run time | 190.3s (was 485.8s before merging the two LLM calls into one) |
 
-Both misses were false positives on the same category: a genuine,
-clean-domain security notification worded like a phishing email
-("security alert," "your password expires soon") got flagged as a real
-threat by the local model even with clean authentication and no
-technical indicators. Recall was perfect and nothing malicious slipped
-through, but this is exactly the false-positive stress test this project
-set out to cover, and the local model didn't pass it cleanly. Worth
-knowing before you trust a local model's judgment on that specific
-pattern. Rerun `python backend/scripts/run_benchmark.py --markdown out.md`
-any time to reproduce this, or swap `LLM_PROVIDER=claude` to compare.
+The needs-review cases are worth walking through, because they're the
+same false-positive stress test an earlier version of this benchmark got
+wrong outright: a genuine, clean-domain security notification worded like
+a phishing email ("security alert," "your password expires soon"). Back
+when every case had to end as a confident TP or FP, the model called both
+of these examples TP, incorrectly. Now, one of them resolves correctly to
+FP on its own, and the other lands as needs review instead of a
+confident wrong answer, with an explanation of exactly what's ambiguous
+about it. That's the outcome this feature was built for: not a higher
+score, but fewer confident wrong answers.
+
+The one missed case (a false negative, a business-email-compromise
+example with no hard indicators for the rule engine to catch) is a
+genuinely hard one: no bad domain, no bad IP, nothing but the wording and
+a Reply-To mismatch to go on, which is exactly the category with the most
+room for a local model to get it wrong either way. Rerun
+`python backend/scripts/run_benchmark.py --markdown out.md` any time to
+reproduce this, or swap `LLM_PROVIDER=claude` to compare.
 
 The live `/accuracy` endpoint and the Accuracy dashboard in the app track
 a second, different number: precision and recall computed from cases an

@@ -193,7 +193,32 @@ MANDATORY RULES:
 - Empty iocs array if FP verdict"""
 
     result = await ask_llm_json(prompt, ANALYST_SYSTEM, CaseVerdict, max_tokens=2000)
+    result = finalize_case_verdict(
+        result,
+        anomalies=forensic_analysis.get("anomalies", []),
+        threat_results=threat_results,
+        rule_findings=rule_findings,
+        patterns=patterns,
+    )
+    return result.model_dump()
 
+
+def finalize_case_verdict(
+    result:         CaseVerdict,
+    *,
+    anomalies:      list,
+    threat_results: list,
+    rule_findings:  dict = None,
+    patterns:       dict = None,
+) -> CaseVerdict:
+    """The deterministic post-processing every full-case verdict goes
+    through: the zero-evidence auto-correct to FP, the confidence floor
+    for TP, clearing IOCs on FP, and the NEEDS_REVIEW triggers. Kept in
+    exactly one place and called by both score_case (the two-call path)
+    and combined_analysis.run_combined_analysis (the merged single-call
+    path) so the two can never quietly drift apart in how they finalize a
+    verdict — this logic is what actually enforces "the rule engine wins
+    disagreements," not the LLM, so it needs one source of truth."""
     # Captured before any of the adjustments below can inflate or deflate
     # it — NEEDS_REVIEW is about how sure the model itself actually was,
     # not a post-processed number.
@@ -204,7 +229,7 @@ MANDATORY RULES:
     has_threats   = any(
         r.get("abuse_score", 0) >= 25 for r in threat_results
     )
-    has_anomalies = len(forensic_analysis.get("anomalies", [])) > 0
+    has_anomalies = len(anomalies) > 0
     has_rule_hits = len(
         (rule_findings or {}).get("hard_tp_indicators", [])
     ) > 0
@@ -294,7 +319,7 @@ MANDATORY RULES:
             "wasn't confident enough to finalize automatically."
         ] + result.recommended_actions
 
-    return result.model_dump()
+    return result
 
 
 async def score_single(

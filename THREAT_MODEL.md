@@ -8,9 +8,13 @@ LLM in the trust hierarchy rather than the other way around.
 
 The deterministic rule engine (`backend/rule_engine.py`) is ground truth.
 It runs first, and when it reaches a maximally confident verdict, the
-LLM is never even called. When it isn't confident, the LLM produces the
-forensic write-up and the initial verdict, but if the rule engine later
-disagrees on a hard signal, the rule engine wins.
+LLM is never even called. When it isn't confident, one LLM call produces
+the forensic write-up and the verdict together, but if the rule engine
+disagrees with that verdict on a hard signal, the rule engine wins. A
+verdict that's neither confidently confirmed by the rule engine nor
+clearly resolved by the model doesn't get forced into a TP or FP either.
+It's marked as needing human review, with the specific disagreement or
+uncertainty stated, rather than presented as a settled answer it isn't.
 
 The reason is simple: an LLM, local or cloud, is a language model reading
 text that an attacker wrote. The email body, the subject line, the
@@ -97,3 +101,19 @@ injection inside a keyword still defeats plain substring matching
 README come from a small, synthetic, self-constructed test set, not a
 large real-world corpus, and are stated as exactly that. See the README's
 performance section for what the number does and doesn't claim.
+
+**A single bad piece of human feedback.** `backend/confirmed_indicators.py`
+remembers a verdict a human confirmed through the feedback loop,
+permanently, and the rule engine treats that memory as strongly as any
+of its own deterministic checks. If someone accidentally marks a genuine
+phishing case as a false positive, that specific IP or domain gets
+remembered as clean, and future emails containing it will short-circuit
+straight to FP without the LLM ever weighing in again, until it's
+corrected. This is a deliberate tradeoff for speed and for not silently
+re-litigating something a person already looked at, not an oversight, but
+it does mean the feedback loop is a real trust boundary of its own: it's
+worth treating a "mark as correct" click with the same care as the
+verdict itself. `backend/scripts/suggest_rules.py` only ever prints
+suggestions for a human to add manually, on purpose, for the same
+reason: nothing in this system edits its own detection logic
+unsupervised.
