@@ -26,6 +26,33 @@ SOCIAL_ENGINEERING = [
     "before the audit", "before they find out"
 ]
 
+# Same three categories, in Arabic. The English lists above only ever
+# match Latin-script text — a phishing email written in Arabic scored 0 on
+# every one of them regardless of how blatant the social engineering was.
+# This isn't a translation layer bolted on top; it's applied identically
+# to the English lists inside analyze_text_patterns() below.
+PHISHING_KEYWORDS_AR = [
+    "تحقق من حسابك", "تم تعليق", "إجراء عاجل",
+    "اضغط هنا فورا", "سيتم حذف حسابك", "تأكيد هويتك",
+    "نشاط غير معتاد", "عرض لفترة محدودة", "بادر الآن",
+    "تحقق فورا", "انتهت صلاحية كلمة المرور", "وصول غير مصرح به",
+    "تم اختراق الحساب", "تنبيه أمني",
+]
+
+URGENCY_PATTERNS_AR = [
+    r"خلال \d+ ساعة",
+    r"تنتهي (اليوم|الليلة|الآن|قريبا)",
+    r"فورا|عاجل|حالا",
+    r"تحذير أخير|فرصة أخيرة",
+    r"قبل يوم (الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة)",
+]
+
+SOCIAL_ENGINEERING_AR = [
+    "لا ترد على هذا", "لا تخبر أحدا", "احتفظ بهذا سريا",
+    "احذف هذا البريد", "لا تعد توجيه هذا", "بيننا فقط",
+    "قبل التدقيق", "قبل أن يكتشفوا",
+]
+
 TYPOSQUAT_BRANDS = [
     "paypal", "amazon", "microsoft", "google", "apple",
     "netflix", "facebook", "instagram", "twitter", "linkedin",
@@ -52,10 +79,57 @@ def is_private_ip(ip: str) -> bool:
     except ValueError:
         return False
 
+
+# Cyrillic/Greek characters visually indistinguishable from a Latin letter
+# at a glance — not exhaustive, but covers the ones actually used to spoof
+# brand names in real homoglyph domains. Mixed-script lookalike domains are
+# a well-documented phishing technique (e.g. "аpple.com" registered with a
+# Cyrillic а, U+0430, instead of Latin a).
+HOMOGLYPH_MAP = {
+    # Cyrillic -> Latin
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x",
+    "у": "y", "і": "i", "ѕ": "s", "ј": "j", "ԁ": "d", "ԛ": "q",
+    "ѡ": "w", "ь": "b", "п": "n", "м": "m", "к": "k", "н": "h",
+    "т": "t", "в": "b", "г": "r",
+    # Greek -> Latin
+    "α": "a", "ο": "o", "ρ": "p", "υ": "u", "ν": "v", "κ": "k",
+    "τ": "t", "χ": "x", "ι": "i", "β": "b",
+}
+
+
+def _decode_punycode_label(label: str) -> str:
+    """Punycode-decode a single DNS label (xn--...) back to Unicode.
+
+    This is what actually shows up in a URL — URLs must be ASCII, so a
+    domain registered with non-Latin characters is transmitted in its
+    "xn--" form and only rendered back to Unicode by the browser or mail
+    client for the human reader. To catch what a person would actually
+    see, we have to do that same decoding before comparing anything.
+    """
+    if not label.lower().startswith("xn--"):
+        return label
+    try:
+        return label.encode("ascii").decode("idna")
+    except (UnicodeError, LookupError):
+        return label
+
+
+def normalize_homoglyphs(domain: str) -> str:
+    """Decode punycode labels and fold known look-alike characters to
+    their Latin equivalent, so a homoglyph domain compares equal to the
+    brand name it's impersonating."""
+    labels  = domain.lower().split(".")
+    decoded = ".".join(_decode_punycode_label(label) for label in labels)
+    return "".join(HOMOGLYPH_MAP.get(ch, ch) for ch in decoded)
+
+
 def check_typosquatting(domain: str) -> dict:
     domain_lower = domain.lower()
     # Remove TLD
     domain_base  = domain_lower.rsplit(".", 1)[0]
+
+    homoglyph_full = normalize_homoglyphs(domain_lower)
+    homoglyph_base = homoglyph_full.rsplit(".", 1)[0]
 
     for brand in TYPOSQUAT_BRANDS:
         # The brand's own domain, or a real subdomain of it (e.g.
@@ -89,6 +163,17 @@ def check_typosquatting(domain: str) -> dict:
                 "brand":     brand,
                 "domain":    domain,
                 "technique": "typosquatting" if brand in domain_base else "number-substitution",
+            }
+
+        # Homoglyph/lookalike-character domain (possibly punycode-encoded)
+        # impersonating the brand — checked after the plain-ASCII paths
+        # above since those are cheaper and cover the common case.
+        if brand in homoglyph_base:
+            return {
+                "detected":  True,
+                "brand":     brand,
+                "domain":    domain,
+                "technique": "homoglyph",
             }
 
         # Levenshtein-like: check if very similar to brand
@@ -128,19 +213,21 @@ def analyze_text_patterns(text: str) -> dict:
         "total_score":          0
     }
     
-    # Check phishing keywords
-    for kw in PHISHING_KEYWORDS:
+    # Check phishing keywords — English and Arabic, applied identically.
+    # Arabic has no case distinction, so .lower() is a harmless no-op on
+    # it; the English list still needs text_lower for its own matching.
+    for kw in PHISHING_KEYWORDS + PHISHING_KEYWORDS_AR:
         if kw in text_lower:
             results["phishing_keywords"].append(kw)
-    
-    # Check urgency patterns
-    for pattern in URGENCY_PATTERNS:
+
+    # Check urgency patterns — English and Arabic
+    for pattern in URGENCY_PATTERNS + URGENCY_PATTERNS_AR:
         matches = re.findall(pattern, text_lower)
         if matches:
             results["urgency_patterns"].extend(matches)
-    
-    # Check social engineering
-    for se in SOCIAL_ENGINEERING:
+
+    # Check social engineering — English and Arabic
+    for se in SOCIAL_ENGINEERING + SOCIAL_ENGINEERING_AR:
         if se in text_lower:
             results["social_engineering"].append(se)
     

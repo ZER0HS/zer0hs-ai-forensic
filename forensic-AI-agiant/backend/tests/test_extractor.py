@@ -41,14 +41,13 @@ def test_no_indicators_in_plain_text():
     assert result["emails"] == []
 
 
-def test_homoglyph_punycode_domain_is_extracted_but_not_flagged_as_typosquat():
-    """Known limitation: a punycode-encoded homoglyph domain (e.g. a
-    Cyrillic look-alike registered as xn--...) is extracted as a domain
-    fine, but check_typosquatting()'s plain substring/Levenshtein match
-    against ASCII brand names never fires for it, since the punycode
-    string doesn't resemble the brand name as text. Documented here as a
-    regression target for a future IDN-aware typosquat check rather than
-    silently assumed to be handled."""
+def test_homoglyph_punycode_domain_is_extracted_and_flagged_as_typosquat():
+    """xn--pypal-4ve.com is the real punycode encoding of "p<Cyrillic
+    а>ypal.com" — a homoglyph domain using U+0430 in place of Latin "a",
+    exactly what a browser or mail client would show a human reader after
+    decoding it. check_typosquatting() punycode-decodes and folds known
+    look-alike characters before comparing against brand names, so this
+    is caught rather than silently passing as an unrelated string."""
     from rule_engine import check_typosquatting
 
     text = "Verify now: http://xn--pypal-4ve.com/login"
@@ -56,4 +55,6 @@ def test_homoglyph_punycode_domain_is_extracted_but_not_flagged_as_typosquat():
     assert "xn--pypal-4ve.com" in indicators["domains"]
 
     result = check_typosquatting("xn--pypal-4ve.com")
-    assert not result["detected"]
+    assert result["detected"]
+    assert result["technique"] == "homoglyph"
+    assert result["brand"] == "paypal"

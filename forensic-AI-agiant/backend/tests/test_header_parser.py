@@ -63,6 +63,21 @@ def test_dangerous_attachment_flagged_as_critical_anomaly():
     assert any(a["type"] == "dangerous_attachment" for a in result["anomalies"])
 
 
+def test_arabic_phishing_email_preserves_utf8_body_and_flags_auth_failures(fixtures_dir):
+    """UTF-8 Arabic body text must survive parsing intact — no mangling,
+    no silent fallback to an empty body — and the header-level anomaly
+    detection (which is script-agnostic) still fires the same as it would
+    for an equivalent English-language spoofed sender."""
+    content = (fixtures_dir / "arabic_phishing.eml").read_bytes()
+    result = parse_eml(content)
+
+    assert result["auth_results"]["spf"] == "fail"
+    assert result["auth_results"]["dkim"] == "fail"
+    assert result["auth_results"]["dmarc"] == "fail"
+    assert "خلال 24" in result["body_text"]
+    assert "185.220.101.45" in result["routing_ips"]
+
+
 def test_prompt_injection_email_still_parses_normally(fixtures_dir):
     """The injection payload lives in the body text, not the headers — it
     should have zero effect on header parsing, and the auth/anomaly

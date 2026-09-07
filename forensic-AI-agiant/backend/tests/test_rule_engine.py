@@ -132,28 +132,32 @@ ARABIC_URGENCY_TEXT = (
 )
 
 
-def test_arabic_phishing_text_not_caught_by_english_only_keywords():
-    """PHISHING_KEYWORDS / URGENCY_PATTERNS are English-only, so genuine
-    Arabic-language urgency/social-engineering phrasing scores zero on the
-    text analyzer. This is a real, known gap — documented explicitly here
-    rather than silently assumed to work. See IMPLEMENTATION_PLAN.md for
-    the recommended fix (a parallel non-English pattern list)."""
+def test_arabic_phishing_text_is_caught_by_the_arabic_keyword_lists():
+    """PHISHING_KEYWORDS_AR / URGENCY_PATTERNS_AR close the gap that used
+    to leave genuine Arabic-language urgency/social-engineering phrasing
+    scoring zero: this text states "you must verify your identity within
+    24 hours or your account will be permanently suspended, click here
+    immediately" and is scored the same way the equivalent English text
+    would be."""
     analysis = analyze_text_patterns(ARABIC_URGENCY_TEXT)
-    assert analysis["total_score"] == 0
+    assert analysis["total_score"] > 0
+    assert analysis["phishing_keywords"]   # "click here immediately"
+    assert analysis["urgency_patterns"]    # "within 24 hours", "immediately"
 
 
-def test_arabic_phishing_still_caught_via_language_agnostic_signals():
-    """Even though the text scorer misses the Arabic wording, a
-    typosquatting domain or a known-malicious IP is language-agnostic —
-    defense in depth still catches the email via a different signal."""
+def test_arabic_phishing_caught_via_both_text_and_domain_signals():
+    """A typosquat domain or known-malicious IP is language-agnostic and
+    always corroborates the text signal regardless of the email's
+    language — both fire together here, which is what defense in depth
+    is supposed to look like."""
     findings = run_rules(
         text=ARABIC_URGENCY_TEXT + " http://paypa1-arabic-verify.com/verify",
         indicators={"ips": ["185.220.101.45"], "domains": ["paypa1-arabic-verify.com"]},
         threat_results=[{"type": "ip", "value": "185.220.101.45", "abuse_score": 90}],
     )
     assert findings["verdict_override"] == "TP"
-    assert findings["text_analysis"]["total_score"] == 0  # confirms the gap is real
-    assert findings["typosquat_results"]                  # confirms the mitigation fires
+    assert findings["text_analysis"]["total_score"] > 0   # Arabic text scored too
+    assert findings["typosquat_results"]                  # and the domain signal fires
 
 
 # ── Short-circuit builders (no LLM call needed) ─────────────────────────

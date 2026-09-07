@@ -152,6 +152,28 @@ def test_prompt_injection_cannot_override_the_rule_engine_verdict(client, fixtur
     assert not ollama_route.called
 
 
+@pytest.mark.respx(base_url="http://localhost:11434", assert_all_called=False)
+def test_arabic_phishing_short_circuits_via_domain_and_ip_not_language(client, fixtures_dir, respx_mock, monkeypatch):
+    """The full pipeline on an Arabic-language phishing email: the
+    typosquat domain (paypa1-verify-ar.com, a number-substituted "paypal")
+    plus a high-risk IP is enough for a rule-engine short-circuit on its
+    own, but the Arabic keyword lists corroborate it too — this asserts
+    both actually fired, not just that the final verdict happened to come
+    out right for an unrelated reason."""
+    _mock_high_risk_abuseipdb(respx_mock, monkeypatch)
+    ollama_route = respx_mock.post("/api/generate").mock(return_value=_ollama_response(FORENSIC_JSON))
+
+    eml_bytes = (fixtures_dir / "arabic_phishing.eml").read_bytes()
+    r = client.post("/analyze", files={"file": ("phish_ar.eml", eml_bytes, "message/rfc822")})
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["case_verdict"]["verdict"] == "TP"
+    assert data["rule_findings"]["typosquat_results"]
+    assert data["rule_findings"]["text_analysis"]["total_score"] > 0
+    assert not ollama_route.called
+
+
 def test_malformed_eml_does_not_crash_the_endpoint(client, fixtures_dir):
     eml_bytes = (fixtures_dir / "malformed.eml").read_bytes()
     r = client.post("/analyze", files={"file": ("broken.eml", eml_bytes, "message/rfc822")})

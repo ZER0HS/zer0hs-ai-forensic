@@ -1,0 +1,21 @@
+From: خدمة عملاء PayPal <security@paypa1-verify-ar.com>
+To: customer@example.com
+Subject: تنبيه أمني: يجب التحقق من حسابك خلال 24 ساعة
+Date: Mon, 1 Sep 2025 04:00:00 +0000
+Reply-To: attacker@freemail-relay.ru
+Message-ID: <sec001@paypa1-verify-ar.com>
+Received: from mail.paypa1-verify-ar.com (unknown [185.220.101.45])
+    by mx.example.com; Mon, 1 Sep 2025 04:00:00 +0000
+Authentication-Results: mx.example.com; spf=fail smtp.mailfrom=paypa1-verify-ar.com; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+
+عزيزي العميل،
+
+لقد لاحظنا نشاطاً غير معتاد على حسابك. يجب عليك التحقق من هويتك خلال 24
+ساعة وإلا سيتم إيقاف حسابك بشكل دائم.
+
+اضغط هنا فوراً للتحقق من حسابك: http://paypa1-verify-ar.com/verify
+
+لا ترد على هذا البريد الإلكتروني.
+
+فريق الأمان
