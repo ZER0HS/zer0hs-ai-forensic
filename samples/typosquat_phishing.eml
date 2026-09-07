@@ -1,0 +1,21 @@
+From: PayPal Security <security@paypa1-verification.com>
+To: victim@example.com
+Subject: Urgent: Your account will be suspended
+Date: Mon, 1 Sep 2025 03:14:00 +0000
+Reply-To: attacker@evil-mail.ru
+Message-ID: <abc123@paypa1-verification.com>
+Received: from mail.paypa1-verification.com (unknown [185.220.101.45])
+    by mx.example.com; Mon, 1 Sep 2025 03:14:00 +0000
+Authentication-Results: mx.example.com; spf=fail smtp.mailfrom=paypa1-verification.com; dkim=fail; dmarc=fail
+Content-Type: text/plain; charset="utf-8"
+
+Dear Customer,
+
+We have detected unusual activity on your account. Your account will be
+suspended within 24 hours unless you verify your identity immediately.
+
+Click here to verify: http://paypa1-verification.com/login
+
+Do not reply to this email. Act now to avoid permanent suspension.
+
+PayPal Security Team
