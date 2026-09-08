@@ -1,4 +1,4 @@
-import { BarChart3, History, Package, ScanSearch, ShieldHalf } from 'lucide-react'
+import { BarChart3, History, Package, ScanSearch, ShieldCheck, ShieldHalf } from 'lucide-react'
 
 export const NAV_ITEMS = [
   ['evidence', 'Analyze',       ScanSearch],
@@ -18,13 +18,15 @@ export default function Sidebar({ active, onNavigate }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 8px 20px' }}>
         <div style={{
           width: '28px', height: '28px', borderRadius: 'var(--radius-sm)',
-          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+          background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '14px', fontWeight: 700, color: 'white', flexShrink: 0,
-        }}>F</div>
+          flexShrink: 0,
+        }}>
+          <ShieldCheck size={16} color="white" strokeWidth={2.4} />
+        </div>
         <span style={{
           fontSize: 'var(--text-md)', fontWeight: 700, color: 'var(--text1)', letterSpacing: '-0.02em',
-        }}>ForensicAI</span>
+        }}>ZER0HS</span>
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

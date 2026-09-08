@@ -1,4 +1,4 @@
-# Backend — Forensic AI Agent
+# Backend: ZER0HS
 
 FastAPI service that parses a suspicious email/log, extracts indicators,
 checks them against threat intel, runs a deterministic rule engine, and

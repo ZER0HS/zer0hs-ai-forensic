@@ -1,4 +1,4 @@
-# Frontend — ForensicAI
+# Frontend: ZER0HS
 
 React (Vite) frontend for the analysis pipeline described in the backend.
 
