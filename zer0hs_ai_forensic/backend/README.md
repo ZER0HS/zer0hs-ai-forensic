@@ -1,4 +1,4 @@
-# Backend: ZAR0HS-AI-Forensic
+# Backend: ZAR0HS-AI-FORENSIC
 
 FastAPI service that parses a suspicious email/log, extracts indicators,
 checks them against threat intel, runs a deterministic rule engine, and
