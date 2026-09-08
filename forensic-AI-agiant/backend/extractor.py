@@ -15,13 +15,39 @@ def extract_domain_from_url(url: str) -> str:
         return ""
 
 
+_URL_TRAILING_PUNCTUATION = '.,;:!?\'"'
+_URL_BRACKET_PAIRS = {')': '(', ']': '[', '}': '{'}
+
+
+def _clean_url(url: str) -> str:
+    """Strip trailing punctuation and unmatched closing brackets that came from
+    surrounding prose rather than the URL itself.
+
+    An email or report will often wrap a URL in parentheses, e.g.
+    "(http://evil.com/path)", and the raw regex match pulls in that closing
+    ")" as part of the URL. That broken URL then fails threat-intel lookups
+    and sandbox scans. This trims trailing punctuation, and trims a trailing
+    bracket only when it has no matching opening bracket inside the URL, so a
+    URL that legitimately ends with a balanced ")" is left alone.
+    """
+    url = url.rstrip(_URL_TRAILING_PUNCTUATION)
+    while url and url[-1] in _URL_BRACKET_PAIRS:
+        opener = _URL_BRACKET_PAIRS[url[-1]]
+        closer = url[-1]
+        if url.count(opener) < url.count(closer):
+            url = url[:-1].rstrip(_URL_TRAILING_PUNCTUATION)
+        else:
+            break
+    return url
+
+
 def extract_indicators(text: str) -> dict:
     ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
     url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
     domain_pattern = r'\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+(?:com|net|org|io|gov|edu|co|uk|de|ru|cn|info|biz|xyz|top|online|site|tk|ml|ga|cf|gq|win|club|live|shop|app|dev)\b'
     email_pattern = r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b'
 
-    urls     = list(set(re.findall(url_pattern, text)))
+    urls     = list({_clean_url(u) for u in re.findall(url_pattern, text)})
     ips      = list(set(re.findall(ip_pattern, text)))
     emails   = list(set(re.findall(email_pattern, text)))
 

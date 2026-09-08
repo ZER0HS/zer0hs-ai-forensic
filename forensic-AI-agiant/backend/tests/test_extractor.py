@@ -1,4 +1,4 @@
-from extractor import extract_domain_from_url, extract_indicators
+from extractor import _clean_url, extract_domain_from_url, extract_indicators
 
 
 def test_extract_domain_from_url_handles_scheme_path_and_port():
@@ -45,6 +45,41 @@ def test_no_indicators_in_plain_text():
     assert result["domains"] == []
     assert result["urls"] == []
     assert result["emails"] == []
+
+
+# ── Trailing punctuation / prose brackets around a URL ──────────────────
+
+def test_url_wrapped_in_parentheses_loses_the_closing_paren():
+    """The reported bug: an email or report wraps a URL in prose
+    parentheses, and the raw regex match pulls the closing ")" in as part
+    of the URL, breaking threat-intel lookups and sandbox scans on
+    exactly the indicator most worth checking."""
+    result = extract_indicators("See (http://www.instagram.com/capitalone/) for the fake profile.")
+    assert "http://www.instagram.com/capitalone/" in result["urls"]
+    assert "http://www.instagram.com/capitalone/)" not in result["urls"]
+
+
+def test_url_ending_a_sentence_loses_the_period():
+    result = extract_indicators("Click http://evil.com/login now.")
+    assert "http://evil.com/login" in result["urls"]
+
+
+def test_url_with_trailing_bracket_and_quote_stacked():
+    assert _clean_url("http://evil.com/a]'") == "http://evil.com/a"
+
+
+def test_url_with_balanced_closing_paren_keeps_it():
+    """A URL that legitimately ends in a balanced ")" — the classic
+    Wikipedia-style link with a parenthetical in the path — must not lose
+    it just because it's also a closing bracket."""
+    url = "https://en.wikipedia.org/wiki/Phishing_(disambiguation)"
+    assert _clean_url(url) == url
+
+
+def test_url_with_unbalanced_trailing_bracket_variants():
+    assert _clean_url("http://evil.com/a)") == "http://evil.com/a"
+    assert _clean_url("http://evil.com/a]") == "http://evil.com/a"
+    assert _clean_url("http://evil.com/a}") == "http://evil.com/a"
 
 
 def test_homoglyph_punycode_domain_is_extracted_and_flagged_as_typosquat():
