@@ -2,7 +2,7 @@
 
 <p align="center"><em>Design concept for the case results screen, not a screenshot of the running app. The case data shown is made up for illustration.</em></p>
 
-# ZER0HS
+# ZAR0HS-AI-FORENSIC
 
 This is a phishing and email-forensics tool you run yourself. Give it an
 email (a `.eml` file, pasted text, or a `.zip` of several) and it pulls
