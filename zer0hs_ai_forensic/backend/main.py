@@ -18,7 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-logger = logging.getLogger("forensic_ai")
+logger = logging.getLogger("zer0hs_ai_forensic")
 
 # ── Create app FIRST ──────────────────────────────────────────────────────
 app = FastAPI(title="ZER0HS", version="2.0.0")

@@ -2,7 +2,7 @@
 
 Three synthetic `.eml` files to try the tool with right away, so you don't
 have to write your own test case first. They're the same files used as
-test fixtures in `forensic-AI-agiant/backend/tests/fixtures/` — safe,
+test fixtures in `zer0hs_ai_forensic/backend/tests/fixtures/` — safe,
 made up, no real people or real malicious infrastructure.
 
 Upload any of these on the Analyze tab, or run them through

@@ -29,7 +29,7 @@ Requires the backend running separately on port 8000 (see
 npm run build
 ```
 
-Output goes to `dist/`. `vite.config.js` sets `base: '/forensic-AI-agiant/'`,
+Output goes to `dist/`. `vite.config.js` sets `base: '/zer0hs_ai_forensic/'`,
 so a production build expects to be served from that path, not the
 server root — see `Dockerfile` and `nginx.conf` for how that's handled in
 the Docker image.

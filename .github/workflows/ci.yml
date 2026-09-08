@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: forensic-AI-agiant/backend
+        working-directory: zer0hs_ai_forensic/backend
     steps:
       - uses: actions/checkout@v4
 
@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: forensic-AI-agiant/backend/requirements-dev.txt
+          cache-dependency-path: zer0hs_ai_forensic/backend/requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: forensic-AI-agiant/frontend
+        working-directory: zer0hs_ai_forensic/frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: forensic-AI-agiant/frontend/package-lock.json
+          cache-dependency-path: zer0hs_ai_forensic/frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci

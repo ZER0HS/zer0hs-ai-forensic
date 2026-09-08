@@ -2,8 +2,8 @@
 
 ## Local (recommended default)
 
-Run the backend and frontend directly — see `forensic-AI-agiant/backend/README.md`
-and `forensic-AI-agiant/frontend/README.md`. This is the right choice for a
+Run the backend and frontend directly — see `zer0hs_ai_forensic/backend/README.md`
+and `zer0hs_ai_forensic/frontend/README.md`. This is the right choice for a
 single user or a small team on one machine: email content never leaves
 the machine when `LLM_PROVIDER=ollama` (the default), and there's no
 container overhead.
@@ -14,7 +14,7 @@ For a reproducible deploy (a shared team box, a homelab server) or to run
 the backend and frontend as long-lived services:
 
 ```bash
-cd forensic-AI-agiant
+cd zer0hs_ai_forensic
 cp backend/.env.example backend/.env
 # fill in real values, and set API_KEY if this will be reachable by
 # more than just you
@@ -22,7 +22,7 @@ cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-- Frontend: http://localhost:8080 (redirects to `/forensic-AI-agiant/`,
+- Frontend: http://localhost:8080 (redirects to `/zer0hs_ai_forensic/`,
   matching the app's configured base path)
 - Backend: http://localhost:8000
 
@@ -38,10 +38,10 @@ before building — it's baked into the JS bundle at build time, not
 read at container runtime:
 
 ```bash
-VITE_API_URL=https://forensic-api.example.com docker compose up --build
+VITE_API_URL=https://zer0hs-api.example.com docker compose up --build
 ```
 
-(run from `forensic-AI-agiant/`, where `docker-compose.yml` lives alongside
+(run from `zer0hs_ai_forensic/`, where `docker-compose.yml` lives alongside
 `backend/` and `frontend/`)
 
 Case history persists across container restarts via the `backend_feedback`

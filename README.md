@@ -95,7 +95,7 @@ end to end without touching the UI.
 ## Quick start
 
 ```bash
-cd forensic-AI-agiant
+cd zer0hs_ai_forensic
 cp backend/.env.example backend/.env   # fill in real values
 docker compose up --build
 ```
@@ -215,8 +215,8 @@ dashboard.
 
 - [`DEPLOYMENT.md`](DEPLOYMENT.md): local, Docker, and cloud deployment
 - [`THREAT_MODEL.md`](THREAT_MODEL.md): what this defends against, what it doesn't, and why
-- [`backend/README.md`](forensic-AI-agiant/backend/README.md): backend setup, running the tests, architecture notes
-- [`frontend/README.md`](forensic-AI-agiant/frontend/README.md): frontend setup
+- [`backend/README.md`](zer0hs_ai_forensic/backend/README.md): backend setup, running the tests, architecture notes
+- [`frontend/README.md`](zer0hs_ai_forensic/frontend/README.md): frontend setup
 
 ## License
 

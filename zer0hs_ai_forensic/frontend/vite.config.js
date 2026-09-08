@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/forensic-AI-agiant/',
+  base: '/zer0hs_ai_forensic/',
   server: { port: 5173, strictPort: true }
 })
