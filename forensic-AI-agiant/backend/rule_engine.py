@@ -488,10 +488,66 @@ def shortcircuit_forensic(text: str, rule_findings: dict) -> dict:
     }
 
 
-def shortcircuit_verdict(rule_findings: dict) -> dict:
+def _shortcircuit_iocs_and_mitre(rule_findings: dict, threat_results: list,
+                                  hash_results: list) -> tuple:
+    """Build the actual IOC list and MITRE ATT&CK mapping for a short-
+    circuited TP verdict, instead of the hardcoded empty lists this used to
+    return. Every value here traces back to something the rule engine
+    already found — a typosquat domain, a high-score IP, a malicious
+    domain or attachment hash — so nothing here is guessed."""
+    iocs = []
+
+    for ts in rule_findings.get("typosquat_results", []):
+        if ts.get("domain"):
+            iocs.append(ts["domain"])
+
+    for r in threat_results:
+        val = r.get("value", "")
+        if not val:
+            continue
+        if r.get("type") == "ip" and r.get("abuse_score", 0) >= 75:
+            iocs.append(val)
+        elif r.get("type") == "domain" and r.get("malicious_votes", 0) > 0:
+            iocs.append(val)
+
+    for h in hash_results:
+        if h.get("malicious", 0) > 0:
+            iocs.append(h.get("hash") or h.get("filename", "unknown attachment"))
+
+    iocs.extend(rule_findings.get("dangerous_files", []))
+    iocs = list(dict.fromkeys(iocs))  # de-dupe, keep first-seen order
+
+    mitre = []
+    if rule_findings.get("typosquat_results"):
+        mitre.append("T1566.002 - Phishing: Spearphishing Link")
+    if any(h.get("malicious", 0) > 0 for h in hash_results):
+        mitre.append("T1566.001 - Phishing: Spearphishing Attachment")
+    if rule_findings.get("dangerous_files"):
+        mitre.append("T1204.002 - User Execution: Malicious File")
+    if any(r.get("type") == "ip" and r.get("abuse_score", 0) >= 75 for r in threat_results):
+        mitre.append("T1584.005 - Compromise Infrastructure: Botnet")
+    if not mitre:
+        # A confirmed-by-human-feedback or generic definite-TP override
+        # still deserves a technique, not an empty field.
+        mitre.append("T1566 - Phishing")
+    mitre = list(dict.fromkeys(mitre))
+
+    return iocs, mitre
+
+
+def shortcircuit_verdict(rule_findings: dict, threat_results: list = None,
+                          hash_results: list = None) -> dict:
+    threat_results = threat_results or []
+    hash_results    = hash_results or []
     override  = rule_findings["verdict_override"]
     reason    = rule_findings.get("override_reason", "")
     is_tp     = override == "TP"
+
+    iocs, mitre_techniques = (
+        _shortcircuit_iocs_and_mitre(rule_findings, threat_results, hash_results)
+        if is_tp else ([], [])
+    )
+
     return {
         "verdict":       override,
         "confidence":    95,
@@ -509,8 +565,8 @@ def shortcircuit_verdict(rule_findings: dict) -> dict:
             if is_tp else
             ["No action required — routine review only"]
         ),
-        "mitre_techniques":     [],
-        "iocs":                 [],
+        "mitre_techniques":     mitre_techniques,
+        "iocs":                 iocs,
         "threat_actor_profile": None,
         "severity_breakdown": {
             "indicator_risk": 0, "behavioral_risk": 0, "contextual_risk": 0

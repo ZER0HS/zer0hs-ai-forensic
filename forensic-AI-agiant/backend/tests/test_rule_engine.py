@@ -230,6 +230,41 @@ def test_shortcircuit_verdict_matches_override():
     assert verdict["iocs"] == []
 
 
+def test_shortcircuit_verdict_populates_real_iocs_and_mitre_on_tp():
+    """Regression test for a real bug: a short-circuited TP used to always
+    report empty iocs/mitre_techniques, even though the rule engine had a
+    typosquat domain, a high-risk IP, and a malicious attachment hash on
+    hand the whole time. This is exactly the case a report reader most
+    needs those fields for, since it's the most confidently malicious
+    verdict the tool produces."""
+    indicators = {"ips": ["203.0.113.55"], "domains": ["paypa1-secure-login.com"]}
+    threat_results = [
+        {"type": "ip", "value": "203.0.113.55", "abuse_score": 92},
+        {"type": "domain", "value": "paypa1-secure-login.com", "malicious_votes": 8},
+    ]
+    hash_results = [{"hash": "a" * 64, "filename": "invoice.exe", "malicious": 12, "total": 70}]
+
+    findings = run_rules(
+        "Urgent: verify your account now or it will be suspended.",
+        indicators, threat_results, hash_results, attachments=[],
+    )
+    assert findings["verdict_override"] == "TP"
+
+    verdict = shortcircuit_verdict(findings, threat_results, hash_results)
+    assert "paypa1-secure-login.com" in verdict["iocs"]
+    assert "203.0.113.55" in verdict["iocs"]
+    assert "a" * 64 in verdict["iocs"]
+    assert any("Spearphishing" in t for t in verdict["mitre_techniques"])
+
+
+def test_shortcircuit_verdict_keeps_empty_iocs_on_fp():
+    findings = run_rules("hi", {"ips": [], "domains": []}, [])
+    verdict = shortcircuit_verdict(findings, [{"type": "ip", "value": "1.2.3.4", "abuse_score": 95}], [])
+    assert verdict["verdict"] == "FP"
+    assert verdict["iocs"] == []
+    assert verdict["mitre_techniques"] == []
+
+
 def test_shortcircuit_forensic_uses_literal_evidence_slice():
     findings = run_rules("hi", {"ips": [], "domains": []}, [])
     forensic = shortcircuit_forensic("hello world, this is the evidence", findings)

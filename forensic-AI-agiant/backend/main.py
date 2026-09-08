@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger("forensic_ai")
 
 # ── Create app FIRST ──────────────────────────────────────────────────────
-app = FastAPI(title="Forensic AI Agent", version="2.0.0")
+app = FastAPI(title="ZER0HS", version="2.0.0")
 
 # ── Rate limiting ────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
@@ -231,7 +231,7 @@ async def analyze(
             # than run them and overrule them after the fact.
             logger.info("Rule engine short-circuit: %s (%s)", override, rule_findings.get("override_reason"))
             forensic = shortcircuit_forensic(raw_text, rule_findings)
-            verdict  = shortcircuit_verdict(rule_findings)
+            verdict  = shortcircuit_verdict(rule_findings, threat_results, hash_results)
         else:
             # Steps 5+6 — one LLM call for both the forensic write-up and
             # the verdict, instead of two sequential ones. See
